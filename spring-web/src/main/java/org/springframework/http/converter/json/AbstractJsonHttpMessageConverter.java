@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,7 @@ public abstract class AbstractJsonHttpMessageConverter extends AbstractGenericHt
 
 	public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
+	@Nullable
 	private String jsonPrefix;
 
 
@@ -123,7 +124,7 @@ public abstract class AbstractJsonHttpMessageConverter extends AbstractGenericHt
 		catch (Exception ex) {
 			throw new HttpMessageNotWritableException("Could not write JSON: " + ex.getMessage(), ex);
 		}
-		writer.close();
+		writer.flush();
 	}
 
 

@@ -37,6 +37,7 @@ import org.springframework.lang.Nullable;
  */
 public class DelegatingMessageSource extends MessageSourceSupport implements HierarchicalMessageSource {
 
+	@Nullable
 	private MessageSource parentMessageSource;
 
 
@@ -46,12 +47,14 @@ public class DelegatingMessageSource extends MessageSourceSupport implements Hie
 	}
 
 	@Override
+	@Nullable
 	public MessageSource getParentMessageSource() {
 		return this.parentMessageSource;
 	}
 
 
 	@Override
+	@Nullable
 	public String getMessage(String code, @Nullable Object[] args, @Nullable String defaultMessage, Locale locale) {
 		if (this.parentMessageSource != null) {
 			return this.parentMessageSource.getMessage(code, args, defaultMessage, locale);
@@ -60,7 +63,7 @@ public class DelegatingMessageSource extends MessageSourceSupport implements Hie
 			return renderDefaultMessage(defaultMessage, args, locale);
 		}
 		else {
-			return "";
+			return null;
 		}
 	}
 

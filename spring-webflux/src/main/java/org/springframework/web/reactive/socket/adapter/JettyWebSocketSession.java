@@ -45,6 +45,7 @@ import org.springframework.web.reactive.socket.WebSocketSession;
  */
 public class JettyWebSocketSession extends AbstractListenerWebSocketSession<Session> {
 
+	@Nullable
 	private volatile SuspendToken suspendToken;
 
 
@@ -56,6 +57,8 @@ public class JettyWebSocketSession extends AbstractListenerWebSocketSession<Sess
 			@Nullable MonoProcessor<Void> completionMono) {
 
 		super(session, ObjectUtils.getIdentityHexString(session), info, factory, completionMono);
+		// TODO: suspend causes failures if invoked at this stage
+		// suspendReceiving();
 	}
 
 
@@ -73,9 +76,10 @@ public class JettyWebSocketSession extends AbstractListenerWebSocketSession<Sess
 	@Override
 	protected void resumeReceiving() {
 		SuspendToken tokenToUse = this.suspendToken;
-		Assert.state(tokenToUse != null, "Not suspended");
-		tokenToUse.resume();
 		this.suspendToken = null;
+		if (tokenToUse != null) {
+			tokenToUse.resume();
+		}
 	}
 
 	@Override

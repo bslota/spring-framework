@@ -83,7 +83,7 @@ class ReactiveTypeHandler {
 
 
 	public ReactiveTypeHandler() {
-		this(new ReactiveAdapterRegistry(), new SyncTaskExecutor(), new ContentNegotiationManager());
+		this(ReactiveAdapterRegistry.getSharedInstance(), new SyncTaskExecutor(), new ContentNegotiationManager());
 	}
 
 	ReactiveTypeHandler(ReactiveAdapterRegistry registry, TaskExecutor executor,
@@ -174,16 +174,18 @@ class ReactiveTypeHandler {
 	}
 
 
-	private static abstract class AbstractEmitterSubscriber implements Subscriber<Object>, Runnable {
+	private abstract static class AbstractEmitterSubscriber implements Subscriber<Object>, Runnable {
 
 		private final ResponseBodyEmitter emitter;
 
 		private final TaskExecutor taskExecutor;
 
+		@Nullable
 		private Subscription subscription;
 
 		private final AtomicReference<Object> elementRef = new AtomicReference<>();
 
+		@Nullable
 		private Throwable error;
 
 		private volatile boolean terminated;
@@ -219,6 +221,7 @@ class ReactiveTypeHandler {
 				terminate();
 				this.emitter.complete();
 			});
+			this.emitter.onError(this.emitter::completeWithError);
 			subscription.request(1);
 		}
 
@@ -275,6 +278,7 @@ class ReactiveTypeHandler {
 			Object element = this.elementRef.get();
 			if (element != null) {
 				this.elementRef.lazySet(null);
+				Assert.state(this.subscription != null, "No subscription");
 				try {
 					send(element);
 					this.subscription.request(1);
@@ -316,7 +320,9 @@ class ReactiveTypeHandler {
 
 		private void terminate() {
 			this.done = true;
-			this.subscription.cancel();
+			if (this.subscription != null) {
+				this.subscription.cancel();
+			}
 		}
 
 	}

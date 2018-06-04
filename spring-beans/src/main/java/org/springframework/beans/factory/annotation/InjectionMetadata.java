@@ -53,6 +53,7 @@ public class InjectionMetadata {
 
 	private final Collection<InjectedElement> injectedElements;
 
+	@Nullable
 	private volatile Set<InjectedElement> checkedElements;
 
 
@@ -78,8 +79,9 @@ public class InjectionMetadata {
 	}
 
 	public void inject(Object target, @Nullable String beanName, @Nullable PropertyValues pvs) throws Throwable {
+		Collection<InjectedElement> checkedElements = this.checkedElements;
 		Collection<InjectedElement> elementsToIterate =
-				(this.checkedElements != null ? this.checkedElements : this.injectedElements);
+				(checkedElements != null ? checkedElements : this.injectedElements);
 		if (!elementsToIterate.isEmpty()) {
 			boolean debug = logger.isDebugEnabled();
 			for (InjectedElement element : elementsToIterate) {
@@ -95,8 +97,9 @@ public class InjectionMetadata {
 	 * @since 3.2.13
 	 */
 	public void clear(@Nullable PropertyValues pvs) {
+		Collection<InjectedElement> checkedElements = this.checkedElements;
 		Collection<InjectedElement> elementsToIterate =
-				(this.checkedElements != null ? this.checkedElements : this.injectedElements);
+				(checkedElements != null ? checkedElements : this.injectedElements);
 		if (!elementsToIterate.isEmpty()) {
 			for (InjectedElement element : elementsToIterate) {
 				element.clearPropertySkipping(pvs);
@@ -110,14 +113,16 @@ public class InjectionMetadata {
 	}
 
 
-	public static abstract class InjectedElement {
+	public abstract static class InjectedElement {
 
 		protected final Member member;
 
 		protected final boolean isField;
 
+		@Nullable
 		protected final PropertyDescriptor pd;
 
+		@Nullable
 		protected volatile Boolean skip;
 
 		protected InjectedElement(Member member, @Nullable PropertyDescriptor pd) {
@@ -192,16 +197,18 @@ public class InjectionMetadata {
 		 * affected property as processed for other processors to ignore it.
 		 */
 		protected boolean checkPropertySkipping(@Nullable PropertyValues pvs) {
-			if (this.skip != null) {
-				return this.skip;
+			Boolean skip = this.skip;
+			if (skip != null) {
+				return skip;
 			}
 			if (pvs == null) {
 				this.skip = false;
 				return false;
 			}
 			synchronized (pvs) {
-				if (this.skip != null) {
-					return this.skip;
+				skip = this.skip;
+				if (skip != null) {
+					return skip;
 				}
 				if (this.pd != null) {
 					if (pvs.contains(this.pd.getName())) {

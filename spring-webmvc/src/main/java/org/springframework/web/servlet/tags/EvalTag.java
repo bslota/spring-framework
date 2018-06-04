@@ -39,9 +39,59 @@ import org.springframework.web.util.JavaScriptUtils;
 import org.springframework.web.util.TagUtils;
 
 /**
- * JSP tag for evaluating expressions with the Spring Expression Language (SpEL).
- * Supports the standard JSP evaluation context consisting of implicit variables and scoped attributes.
+ * The {@code <eval>} tag evaluates a Spring expression (SpEL) and either prints
+ * the result or assigns it to a variable. Supports the standard JSP evaluation
+ * context consisting of implicit variables and scoped attributes.
  *
+ * <table>
+ * <caption>Attribute Summary</caption>
+ * <thead>
+ * <tr>
+ * <th class="colFirst">Attribute</th>
+ * <th class="colOne">Required?</th>
+ * <th class="colOne">Runtime Expression?</th>
+ * <th class="colLast">Description</th>
+ * </tr>
+ * <tbody>
+ * <tr class="altColor">
+ * <td>expression</p></td>
+ * <td>true</p></td>
+ * <td>true</p></td>
+ * <td>The expression to evaluate.</p></td>
+ * </tr>
+ * <tr class="rowColor">
+ * <td>htmlEscape</p></td>
+ * <td>false</p></td>
+ * <td>true</p></td>
+ * <td>Set HTML escaping for this tag, as a boolean value.
+ * Overrides the default HTML escaping setting for the current page.</p></td>
+ * </tr>
+ * <tr class="altColor">
+ * <td>javaScriptEscape</p></td>
+ * <td>false</p></td>
+ * <td>true</p></td>
+ * <td>Set JavaScript escaping for this tag, as a boolean value.
+ * Default is false.</p></td>
+ * </tr>
+ * <tr class="rowColor">
+ * <td>scope</p></td>
+ * <td>false</p></td>
+ * <td>true</p></td>
+ * <td>The scope for the var. 'application', 'session', 'request' and 'page'
+ * scopes are supported. Defaults to page scope. This attribute has no effect
+ * unless the var attribute is also defined.</p></td>
+ * </tr>
+ * <tr class="altColor">
+ * <td>var</p></td>
+ * <td>false</p></td>
+ * <td>true</p></td>
+ * <td>The name of the variable to export the evaluation result to.
+ * If not specified the evaluation result is converted to a String and written
+ * as output.</p></td>
+ * </tr>
+ * </tbody>
+ * </table>
+ * 
  * @author Keith Donald
  * @author Juergen Hoeller
  * @since 3.0.1
@@ -59,8 +109,10 @@ public class EvalTag extends HtmlEscapingAwareTag {
 
 	private final ExpressionParser expressionParser = new SpelExpressionParser();
 
+	@Nullable
 	private Expression expression;
 
+	@Nullable
 	private String var;
 
 	private int scope = PageContext.PAGE_SCOPE;
@@ -114,12 +166,13 @@ public class EvalTag extends HtmlEscapingAwareTag {
 			this.pageContext.setAttribute(EVALUATION_CONTEXT_PAGE_ATTRIBUTE, evaluationContext);
 		}
 		if (this.var != null) {
-			Object result = this.expression.getValue(evaluationContext);
+			Object result = (this.expression != null ? this.expression.getValue(evaluationContext) : null);
 			this.pageContext.setAttribute(this.var, result, this.scope);
 		}
 		else {
 			try {
-				String result = this.expression.getValue(evaluationContext, String.class);
+				String result = (this.expression != null ?
+						this.expression.getValue(evaluationContext, String.class) : null);
 				result = ObjectUtils.getDisplayString(result);
 				result = htmlEscape(result);
 				result = (this.javaScriptEscape ? JavaScriptUtils.javaScriptEscape(result) : result);
@@ -156,6 +209,7 @@ public class EvalTag extends HtmlEscapingAwareTag {
 
 		private final PageContext pageContext;
 
+		@Nullable
 		private final javax.servlet.jsp.el.VariableResolver variableResolver;
 
 		public JspPropertyAccessor(PageContext pageContext) {
@@ -164,6 +218,7 @@ public class EvalTag extends HtmlEscapingAwareTag {
 		}
 
 		@Override
+		@Nullable
 		public Class<?>[] getSpecificTargetClasses() {
 			return null;
 		}
@@ -193,6 +248,7 @@ public class EvalTag extends HtmlEscapingAwareTag {
 			throw new UnsupportedOperationException();
 		}
 
+		@Nullable
 		private Object resolveImplicitVariable(String name) throws AccessException {
 			if (this.variableResolver == null) {
 				return null;

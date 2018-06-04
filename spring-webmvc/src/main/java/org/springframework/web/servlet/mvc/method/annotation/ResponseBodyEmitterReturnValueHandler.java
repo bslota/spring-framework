@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ package org.springframework.web.servlet.mvc.method.annotation;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.function.Consumer;
+
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -111,6 +113,7 @@ public class ResponseBodyEmitterReturnValueHandler implements HandlerMethodRetur
 	}
 
 	@Override
+	@SuppressWarnings("resource")
 	public void handleReturnValue(@Nullable Object returnValue, MethodParameter returnType,
 			ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws Exception {
 
@@ -138,22 +141,22 @@ public class ResponseBodyEmitterReturnValueHandler implements HandlerMethodRetur
 
 		ServletRequest request = webRequest.getNativeRequest(ServletRequest.class);
 		Assert.state(request != null, "No ServletRequest");
-		ShallowEtagHeaderFilter.disableContentCaching(request);
 
 		ResponseBodyEmitter emitter;
-
 		if (returnValue instanceof ResponseBodyEmitter) {
 			emitter = (ResponseBodyEmitter) returnValue;
 		}
 		else {
 			emitter = this.reactiveHandler.handleValue(returnValue, returnType, mavContainer, webRequest);
+			if (emitter == null) {
+				// Not streaming..
+				return;
+			}
 		}
-
-		if (emitter == null) {
-			return;
-		}
-
 		emitter.extendResponse(outputMessage);
+
+		// At this point we know we're streaming..
+		ShallowEtagHeaderFilter.disableContentCaching(request);
 
 		// Commit the response and wrap to ignore further header changes
 		outputMessage.getBody();
@@ -215,6 +218,11 @@ public class ResponseBodyEmitterReturnValueHandler implements HandlerMethodRetur
 		@Override
 		public void onTimeout(Runnable callback) {
 			this.deferredResult.onTimeout(callback);
+		}
+
+		@Override
+		public void onError(Consumer<Throwable> callback) {
+			this.deferredResult.onError(callback);
 		}
 
 		@Override

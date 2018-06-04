@@ -45,7 +45,7 @@ import org.springframework.lang.Nullable;
 class InstantiationModelAwarePointcutAdvisorImpl
 		implements InstantiationModelAwarePointcutAdvisor, AspectJPrecedenceInformation, Serializable {
 
-	private static Advice EMPTY_ADVICE = new Advice() {};
+	private static final Advice EMPTY_ADVICE = new Advice() {};
 
 
 	private final AspectJExpressionPointcut declaredPointcut;
@@ -70,10 +70,13 @@ class InstantiationModelAwarePointcutAdvisorImpl
 
 	private final boolean lazy;
 
+	@Nullable
 	private Advice instantiatedAdvice;
 
+	@Nullable
 	private Boolean isBeforeAdvice;
 
+	@Nullable
 	private Boolean isAfterAdvice;
 
 
@@ -267,10 +270,12 @@ class InstantiationModelAwarePointcutAdvisorImpl
 
 		private final Pointcut preInstantiationPointcut;
 
+		@Nullable
 		private LazySingletonAspectInstanceFactoryDecorator aspectInstanceFactory;
 
 		private PerTargetInstantiationModelPointcut(AspectJExpressionPointcut declaredPointcut,
 				Pointcut preInstantiationPointcut, MetadataAwareAspectInstanceFactory aspectInstanceFactory) {
+
 			this.declaredPointcut = declaredPointcut;
 			this.preInstantiationPointcut = preInstantiationPointcut;
 			if (aspectInstanceFactory instanceof LazySingletonAspectInstanceFactoryDecorator) {

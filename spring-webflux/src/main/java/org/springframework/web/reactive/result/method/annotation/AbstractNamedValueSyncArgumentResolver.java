@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,6 @@
  */
 
 package org.springframework.web.reactive.result.method.annotation;
-
-import java.util.Optional;
 
 import reactor.core.publisher.Mono;
 
@@ -46,7 +44,9 @@ public abstract class AbstractNamedValueSyncArgumentResolver extends AbstractNam
 	 * or {@code null} if default values are not expected to have expressions
 	 * @param registry for checking reactive type wrappers
 	 */
-	protected AbstractNamedValueSyncArgumentResolver(@Nullable ConfigurableBeanFactory factory, ReactiveAdapterRegistry registry) {
+	protected AbstractNamedValueSyncArgumentResolver(
+			@Nullable ConfigurableBeanFactory factory, ReactiveAdapterRegistry registry) {
+
 		super(factory, registry);
 	}
 
@@ -64,13 +64,11 @@ public abstract class AbstractNamedValueSyncArgumentResolver extends AbstractNam
 	}
 
 	@Override
-	public Optional<Object> resolveArgumentValue(
+	public Object resolveArgumentValue(
 			MethodParameter parameter, BindingContext context, ServerWebExchange exchange) {
 
 		// This won't block since resolveName below doesn't
-		Object value = resolveArgument(parameter, context, exchange).block();
-
-		return Optional.ofNullable(value);
+		return resolveArgument(parameter, context, exchange).block();
 	}
 
 	@Override
@@ -81,6 +79,7 @@ public abstract class AbstractNamedValueSyncArgumentResolver extends AbstractNam
 	/**
 	 * Actually resolve the value synchronously.
 	 */
-	protected abstract Optional<Object> resolveNamedValue(String name, MethodParameter param, ServerWebExchange exchange);
+	@Nullable
+	protected abstract Object resolveNamedValue(String name, MethodParameter param, ServerWebExchange exchange);
 
 }

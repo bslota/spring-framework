@@ -16,8 +16,8 @@
 
 package org.springframework.web.reactive.result.method.annotation;
 
+import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.core.MethodParameter;
@@ -60,7 +60,9 @@ public class PathVariableMethodArgumentResolver extends AbstractNamedValueSyncAr
 	 * or {@code null} if default values are not expected to contain expressions
 	 * @param registry for checking reactive type wrappers
 	 */
-	public PathVariableMethodArgumentResolver(@Nullable ConfigurableBeanFactory factory, ReactiveAdapterRegistry registry) {
+	public PathVariableMethodArgumentResolver(@Nullable ConfigurableBeanFactory factory,
+			ReactiveAdapterRegistry registry) {
+
 		super(factory, registry);
 	}
 
@@ -83,15 +85,14 @@ public class PathVariableMethodArgumentResolver extends AbstractNamedValueSyncAr
 
 	@Override
 	@SuppressWarnings("unchecked")
-	protected Optional<Object> resolveNamedValue(String name, MethodParameter parameter, ServerWebExchange exchange) {
+	protected Object resolveNamedValue(String name, MethodParameter parameter, ServerWebExchange exchange) {
 		String attributeName = HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
-		return exchange.getAttribute(attributeName)
-				.map(value -> ((Map<String, String>) value).get(name));
+		return exchange.getAttributeOrDefault(attributeName, Collections.emptyMap()).get(name);
 	}
 
 	@Override
 	protected void handleMissingValue(String name, MethodParameter parameter) {
-		throw new ServerErrorException(name, parameter);
+		throw new ServerErrorException(name, parameter, null);
 	}
 
 	@Override

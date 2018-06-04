@@ -91,6 +91,7 @@ public class ProtobufHttpMessageConverter extends AbstractHttpMessageConverter<M
 
 	private final ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
 
+	@Nullable
 	private final ProtobufFormatSupport protobufFormatSupport;
 
 
@@ -355,7 +356,9 @@ public class ProtobufHttpMessageConverter extends AbstractHttpMessageConverter<M
 				throws IOException {
 
 			if (contentType.isCompatibleWith(APPLICATION_JSON)) {
-				this.printer.appendTo(message, new OutputStreamWriter(output, charset));
+				OutputStreamWriter writer = new OutputStreamWriter(output, charset);
+				this.printer.appendTo(message, writer);
+				writer.flush();
 			}
 			else {
 				throw new IOException("protobuf-java-util does not support " + contentType + " format");

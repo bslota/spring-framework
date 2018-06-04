@@ -50,7 +50,7 @@ import org.springframework.util.StringUtils;
  * top-level class and it must have a default or no-arg constructor.
  *
  * <p>Column values are mapped based on matching the column name as obtained from result set
- * metadata to public setters for the corresponding properties. The names are matched either
+ * meta-data to public setters for the corresponding properties. The names are matched either
  * directly or by transforming a name separating the parts with underscores to the same name
  * using "camel" case.
  *
@@ -80,6 +80,7 @@ public class BeanPropertyRowMapper<T> implements RowMapper<T> {
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	/** The class we are mapping to */
+	@Nullable
 	private Class<T> mappedClass;
 
 	/** Whether we're strictly validating */
@@ -89,12 +90,15 @@ public class BeanPropertyRowMapper<T> implements RowMapper<T> {
 	private boolean primitivesDefaultedForNullValue = false;
 
 	/** ConversionService for binding JDBC values to bean properties */
+	@Nullable
 	private ConversionService conversionService = DefaultConversionService.getSharedInstance();
 
 	/** Map of the fields we provide mapping for */
+	@Nullable
 	private Map<String, PropertyDescriptor> mappedFields;
 
 	/** Set of bean properties we provide mapping for */
+	@Nullable
 	private Set<String> mappedProperties;
 
 
@@ -147,6 +151,7 @@ public class BeanPropertyRowMapper<T> implements RowMapper<T> {
 	/**
 	 * Get the class that we are mapping to.
 	 */
+	@Nullable
 	public final Class<T> getMappedClass() {
 		return this.mappedClass;
 	}
@@ -209,7 +214,7 @@ public class BeanPropertyRowMapper<T> implements RowMapper<T> {
 
 
 	/**
-	 * Initialize the mapping metadata for the given class.
+	 * Initialize the mapping meta-data for the given class.
 	 * @param mappedClass the mapped class
 	 */
 	protected void initialize(Class<T> mappedClass) {
@@ -270,7 +275,7 @@ public class BeanPropertyRowMapper<T> implements RowMapper<T> {
 
 	/**
 	 * Extract the values for all columns in the current row.
-	 * <p>Utilizes public setters and result set metadata.
+	 * <p>Utilizes public setters and result set meta-data.
 	 * @see java.sql.ResultSetMetaData
 	 */
 	@Override
@@ -287,7 +292,7 @@ public class BeanPropertyRowMapper<T> implements RowMapper<T> {
 		for (int index = 1; index <= columnCount; index++) {
 			String column = JdbcUtils.lookupColumnName(rsmd, index);
 			String field = lowerCaseName(column.replaceAll(" ", ""));
-			PropertyDescriptor pd = this.mappedFields.get(field);
+			PropertyDescriptor pd = (this.mappedFields != null ? this.mappedFields.get(field) : null);
 			if (pd != null) {
 				try {
 					Object value = getColumnValue(rs, index, pd);

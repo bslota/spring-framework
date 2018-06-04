@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import javax.servlet.http.HttpServletRequest;
 
@@ -50,6 +51,7 @@ import org.springframework.web.util.UrlPathHelper;
  * detected via {@link #hasConcurrentResult()}.
  *
  * @author Rossen Stoyanchev
+ * @author Juergen Hoeller
  * @since 3.2
  * @see org.springframework.web.context.request.AsyncWebRequestInterceptor
  * @see org.springframework.web.servlet.AsyncHandlerInterceptor
@@ -75,15 +77,13 @@ public final class WebAsyncManager {
 
 	private AsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(this.getClass().getSimpleName());
 
-	private Object concurrentResult = RESULT_NONE;
+	private volatile Object concurrentResult = RESULT_NONE;
 
-	private Object[] concurrentResultContext;
+	private volatile Object[] concurrentResultContext;
 
-	private final Map<Object, CallableProcessingInterceptor> callableInterceptors =
-			new LinkedHashMap<>();
+	private final Map<Object, CallableProcessingInterceptor> callableInterceptors = new LinkedHashMap<>();
 
-	private final Map<Object, DeferredResultProcessingInterceptor> deferredResultInterceptors =
-			new LinkedHashMap<>();
+	private final Map<Object, DeferredResultProcessingInterceptor> deferredResultInterceptors = new LinkedHashMap<>();
 
 
 	/**
@@ -104,7 +104,7 @@ public final class WebAsyncManager {
 	 * {@code true}.
 	 * @param asyncWebRequest the web request to use
 	 */
-	public void setAsyncWebRequest(final AsyncWebRequest asyncWebRequest) {
+	public void setAsyncWebRequest(AsyncWebRequest asyncWebRequest) {
 		Assert.notNull(asyncWebRequest, "AsyncWebRequest must not be null");
 		this.asyncWebRequest = asyncWebRequest;
 		this.asyncWebRequest.addCompletionHandler(() -> asyncWebRequest.removeAttribute(
@@ -129,7 +129,7 @@ public final class WebAsyncManager {
 	 * processing of the concurrent result.
 	 */
 	public boolean isConcurrentHandlingStarted() {
-		return ((this.asyncWebRequest != null) && this.asyncWebRequest.isAsyncStarted());
+		return (this.asyncWebRequest != null && this.asyncWebRequest.isAsyncStarted());
 	}
 
 	/**
@@ -231,8 +231,10 @@ public final class WebAsyncManager {
 	 * {@linkplain #getConcurrentResultContext() concurrentResultContext}.
 	 */
 	public void clearConcurrentResult() {
-		this.concurrentResult = RESULT_NONE;
-		this.concurrentResultContext = null;
+		synchronized (WebAsyncManager.this) {
+			this.concurrentResult = RESULT_NONE;
+			this.concurrentResultContext = null;
+		}
 	}
 
 	/**
@@ -263,7 +265,9 @@ public final class WebAsyncManager {
 	 * via {@link #getConcurrentResultContext()}
 	 * @throws Exception if concurrent processing failed to start
 	 */
-	public void startCallableProcessing(final WebAsyncTask<?> webAsyncTask, Object... processingContext) throws Exception {
+	public void startCallableProcessing(final WebAsyncTask<?> webAsyncTask, Object... processingContext)
+			throws Exception {
+
 		Assert.notNull(webAsyncTask, "WebAsyncTask must not be null");
 		Assert.state(this.asyncWebRequest != null, "AsyncWebRequest must not be null");
 
@@ -293,13 +297,20 @@ public final class WebAsyncManager {
 			}
 		});
 
+		this.asyncWebRequest.addErrorHandler(ex -> {
+			logger.debug("Processing error");
+			Object result = interceptorChain.triggerAfterError(this.asyncWebRequest, callable, ex);
+			result = (result != CallableProcessingInterceptor.RESULT_NONE ? result : ex);
+			setConcurrentResultAndDispatch(result);
+		});
+
 		this.asyncWebRequest.addCompletionHandler(() ->
 				interceptorChain.triggerAfterCompletion(this.asyncWebRequest, callable));
 
 		interceptorChain.applyBeforeConcurrentHandling(this.asyncWebRequest, callable);
 		startAsyncProcessing(processingContext);
 		try {
-			this.taskExecutor.submit(() -> {
+			Future<?> future = this.taskExecutor.submit(() -> {
 				Object result = null;
 				try {
 					interceptorChain.applyPreProcess(this.asyncWebRequest, callable);
@@ -313,6 +324,7 @@ public final class WebAsyncManager {
 				}
 				setConcurrentResultAndDispatch(result);
 			});
+			interceptorChain.setTaskFuture(future);
 		}
 		catch (RejectedExecutionException ex) {
 			Object result = interceptorChain.applyPostProcess(this.asyncWebRequest, callable, ex);
@@ -323,7 +335,7 @@ public final class WebAsyncManager {
 
 	private void setConcurrentResultAndDispatch(Object result) {
 		synchronized (WebAsyncManager.this) {
-			if (hasConcurrentResult()) {
+			if (this.concurrentResult != RESULT_NONE) {
 				return;
 			}
 			this.concurrentResult = result;
@@ -338,7 +350,6 @@ public final class WebAsyncManager {
 			logger.debug("Concurrent result value [" + this.concurrentResult +
 					"] - dispatching request to resume processing");
 		}
-
 		this.asyncWebRequest.dispatch();
 	}
 
@@ -383,6 +394,18 @@ public final class WebAsyncManager {
 			}
 		});
 
+		this.asyncWebRequest.addErrorHandler(ex -> {
+			try {
+				if (!interceptorChain.triggerAfterError(this.asyncWebRequest, deferredResult, ex)) {
+					return;
+				}
+				deferredResult.setErrorResult(ex);
+			}
+			catch (Throwable interceptorEx) {
+				setConcurrentResultAndDispatch(interceptorEx);
+			}
+		});
+
 		this.asyncWebRequest.addCompletionHandler(()
 				-> interceptorChain.triggerAfterCompletion(this.asyncWebRequest, deferredResult));
 
@@ -402,8 +425,10 @@ public final class WebAsyncManager {
 	}
 
 	private void startAsyncProcessing(Object[] processingContext) {
-		clearConcurrentResult();
-		this.concurrentResultContext = processingContext;
+		synchronized (WebAsyncManager.this) {
+			this.concurrentResult = RESULT_NONE;
+			this.concurrentResultContext = processingContext;
+		}
 		this.asyncWebRequest.startAsync();
 
 		if (logger.isDebugEnabled()) {

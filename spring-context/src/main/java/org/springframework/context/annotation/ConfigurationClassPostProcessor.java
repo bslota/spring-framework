@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +54,7 @@ import org.springframework.context.annotation.ConfigurationClassEnhancer.Enhance
 import org.springframework.core.Ordered;
 import org.springframework.core.PriorityOrdered;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.AnnotationMetadata;
@@ -96,10 +97,12 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 
 	private ProblemReporter problemReporter = new FailFastProblemReporter();
 
+	@Nullable
 	private Environment environment;
 
 	private ResourceLoader resourceLoader = new DefaultResourceLoader();
 
+	@Nullable
 	private ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader();
 
 	private MetadataReaderFactory metadataReaderFactory = new CachingMetadataReaderFactory();
@@ -110,6 +113,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 
 	private final Set<Integer> factoriesPostProcessed = new HashSet<>();
 
+	@Nullable
 	private ConfigurationClassBeanDefinitionReader reader;
 
 	private boolean localBeanNameGeneratorSet = false;
@@ -193,7 +197,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	}
 
 	@Override
-	public void setResourceLoader(@Nullable ResourceLoader resourceLoader) {
+	public void setResourceLoader(ResourceLoader resourceLoader) {
 		Assert.notNull(resourceLoader, "ResourceLoader must not be null");
 		this.resourceLoader = resourceLoader;
 		if (!this.setMetadataReaderFactoryCalled) {
@@ -281,7 +285,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		configCandidates.sort((bd1, bd2) -> {
 			int i1 = ConfigurationClassUtils.getOrder(bd1.getBeanDefinition());
 			int i2 = ConfigurationClassUtils.getOrder(bd2.getBeanDefinition());
-			return (i1 < i2) ? -1 : (i1 > i2) ? 1 : 0;
+			return Integer.compare(i1, i2);
 		});
 
 		// Detect any custom bean name generation strategy supplied through the enclosing application context
@@ -295,6 +299,10 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 					this.importBeanNameGenerator = generator;
 				}
 			}
+		}
+
+		if (this.environment == null) {
+			this.environment = new StandardEnvironment();
 		}
 
 		// Parse each @Configuration class
@@ -343,10 +351,8 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		while (!candidates.isEmpty());
 
 		// Register the ImportRegistry as a bean in order to support ImportAware @Configuration classes
-		if (sbr != null) {
-			if (!sbr.containsSingleton(IMPORT_REGISTRY_BEAN_NAME)) {
-				sbr.registerSingleton(IMPORT_REGISTRY_BEAN_NAME, parser.getImportRegistry());
-			}
+		if (sbr != null && !sbr.containsSingleton(IMPORT_REGISTRY_BEAN_NAME)) {
+			sbr.registerSingleton(IMPORT_REGISTRY_BEAN_NAME, parser.getImportRegistry());
 		}
 
 		if (this.metadataReaderFactory instanceof CachingMetadataReaderFactory) {

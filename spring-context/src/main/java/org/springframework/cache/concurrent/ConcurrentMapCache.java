@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,7 @@ public class ConcurrentMapCache extends AbstractValueAdaptingCache {
 
 	private final ConcurrentMap<Object, Object> store;
 
+	@Nullable
 	private final SerializationDelegate serialization;
 
 
@@ -131,6 +132,7 @@ public class ConcurrentMapCache extends AbstractValueAdaptingCache {
 	}
 
 	@Override
+	@Nullable
 	protected Object lookup(Object key) {
 		return this.store.get(key);
 	}
@@ -176,7 +178,7 @@ public class ConcurrentMapCache extends AbstractValueAdaptingCache {
 		Object storeValue = super.toStoreValue(userValue);
 		if (this.serialization != null) {
 			try {
-				return serializeValue(storeValue);
+				return serializeValue(this.serialization, storeValue);
 			}
 			catch (Throwable ex) {
 				throw new IllegalArgumentException("Failed to serialize cache value '" + userValue +
@@ -188,10 +190,10 @@ public class ConcurrentMapCache extends AbstractValueAdaptingCache {
 		}
 	}
 
-	private Object serializeValue(Object storeValue) throws IOException {
+	private Object serializeValue(SerializationDelegate serialization, Object storeValue) throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
-			this.serialization.serialize(storeValue, out);
+			serialization.serialize(storeValue, out);
 			return out.toByteArray();
 		}
 		finally {
@@ -200,10 +202,10 @@ public class ConcurrentMapCache extends AbstractValueAdaptingCache {
 	}
 
 	@Override
-	protected Object fromStoreValue(Object storeValue) {
-		if (this.serialization != null) {
+	protected Object fromStoreValue(@Nullable Object storeValue) {
+		if (storeValue != null && this.serialization != null) {
 			try {
-				return super.fromStoreValue(deserializeValue(storeValue));
+				return super.fromStoreValue(deserializeValue(this.serialization, storeValue));
 			}
 			catch (Throwable ex) {
 				throw new IllegalArgumentException("Failed to deserialize cache value '" + storeValue + "'", ex);
@@ -215,10 +217,10 @@ public class ConcurrentMapCache extends AbstractValueAdaptingCache {
 
 	}
 
-	private Object deserializeValue(Object storeValue) throws IOException {
+	private Object deserializeValue(SerializationDelegate serialization, Object storeValue) throws IOException {
 		ByteArrayInputStream in = new ByteArrayInputStream((byte[]) storeValue);
 		try {
-			return this.serialization.deserialize(in);
+			return serialization.deserialize(in);
 		}
 		finally {
 			in.close();

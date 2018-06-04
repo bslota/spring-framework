@@ -53,6 +53,7 @@ import org.springframework.web.util.UrlPathHelper;
  */
 public final class RequestMappingInfo implements RequestCondition<RequestMappingInfo> {
 
+	@Nullable
 	private final String name;
 
 	private final PatternsRequestCondition patternsCondition;
@@ -70,8 +71,9 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 	private final RequestConditionHolder customConditionHolder;
 
 
-	public RequestMappingInfo(@Nullable String name, @Nullable PatternsRequestCondition patterns, @Nullable RequestMethodsRequestCondition methods,
-			@Nullable ParamsRequestCondition params, @Nullable HeadersRequestCondition headers, @Nullable ConsumesRequestCondition consumes,
+	public RequestMappingInfo(@Nullable String name, @Nullable PatternsRequestCondition patterns,
+			@Nullable RequestMethodsRequestCondition methods, @Nullable ParamsRequestCondition params,
+			@Nullable HeadersRequestCondition headers, @Nullable ConsumesRequestCondition consumes,
 			@Nullable ProducesRequestCondition produces, @Nullable RequestCondition<?> custom) {
 
 		this.name = (StringUtils.hasText(name) ? name : null);
@@ -87,8 +89,9 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 	/**
 	 * Creates a new instance with the given request conditions.
 	 */
-	public RequestMappingInfo(@Nullable PatternsRequestCondition patterns, @Nullable RequestMethodsRequestCondition methods,
-			@Nullable ParamsRequestCondition params, @Nullable HeadersRequestCondition headers, @Nullable ConsumesRequestCondition consumes,
+	public RequestMappingInfo(@Nullable PatternsRequestCondition patterns,
+			@Nullable RequestMethodsRequestCondition methods, @Nullable ParamsRequestCondition params,
+			@Nullable HeadersRequestCondition headers, @Nullable ConsumesRequestCondition consumes,
 			@Nullable ProducesRequestCondition produces, @Nullable RequestCondition<?> custom) {
 
 		this(null, patterns, methods, params, headers, consumes, produces, custom);
@@ -112,55 +115,55 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 	}
 
 	/**
-	 * Returns the URL patterns of this {@link RequestMappingInfo};
-	 * or instance with 0 patterns, never {@code null}.
+	 * Return the URL patterns of this {@link RequestMappingInfo};
+	 * or instance with 0 patterns (never {@code null}).
 	 */
 	public PatternsRequestCondition getPatternsCondition() {
 		return this.patternsCondition;
 	}
 
 	/**
-	 * Returns the HTTP request methods of this {@link RequestMappingInfo};
-	 * or instance with 0 request methods, never {@code null}.
+	 * Return the HTTP request methods of this {@link RequestMappingInfo};
+	 * or instance with 0 request methods (never {@code null}).
 	 */
 	public RequestMethodsRequestCondition getMethodsCondition() {
 		return this.methodsCondition;
 	}
 
 	/**
-	 * Returns the "parameters" condition of this {@link RequestMappingInfo};
-	 * or instance with 0 parameter expressions, never {@code null}.
+	 * Return the "parameters" condition of this {@link RequestMappingInfo};
+	 * or instance with 0 parameter expressions (never {@code null}).
 	 */
 	public ParamsRequestCondition getParamsCondition() {
 		return this.paramsCondition;
 	}
 
 	/**
-	 * Returns the "headers" condition of this {@link RequestMappingInfo};
-	 * or instance with 0 header expressions, never {@code null}.
+	 * Return the "headers" condition of this {@link RequestMappingInfo};
+	 * or instance with 0 header expressions (never {@code null}).
 	 */
 	public HeadersRequestCondition getHeadersCondition() {
 		return this.headersCondition;
 	}
 
 	/**
-	 * Returns the "consumes" condition of this {@link RequestMappingInfo};
-	 * or instance with 0 consumes expressions, never {@code null}.
+	 * Return the "consumes" condition of this {@link RequestMappingInfo};
+	 * or instance with 0 consumes expressions (never {@code null}).
 	 */
 	public ConsumesRequestCondition getConsumesCondition() {
 		return this.consumesCondition;
 	}
 
 	/**
-	 * Returns the "produces" condition of this {@link RequestMappingInfo};
-	 * or instance with 0 produces expressions, never {@code null}.
+	 * Return the "produces" condition of this {@link RequestMappingInfo};
+	 * or instance with 0 produces expressions (never {@code null}).
 	 */
 	public ProducesRequestCondition getProducesCondition() {
 		return this.producesCondition;
 	}
 
 	/**
-	 * Returns the "custom" condition of this {@link RequestMappingInfo}; or {@code null}.
+	 * Return the "custom" condition of this {@link RequestMappingInfo}, or {@code null}.
 	 */
 	@Nullable
 	public RequestCondition<?> getCustomCondition() {
@@ -169,7 +172,7 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 
 
 	/**
-	 * Combines "this" request mapping info (i.e. the current instance) with another request mapping info instance.
+	 * Combine "this" request mapping info (i.e. the current instance) with another request mapping info instance.
 	 * <p>Example: combine type- and method-level request mappings.
 	 * @return a new request mapping info instance; never {@code null}
 	 */
@@ -188,6 +191,7 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 				methods, params, headers, consumes, produces, custom.getCondition());
 	}
 
+	@Nullable
 	private String combineNames(RequestMappingInfo other) {
 		if (this.name != null && other.name != null) {
 			String separator = RequestMappingInfoHandlerMethodMappingNamingStrategy.SEPARATOR;
@@ -197,7 +201,7 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 			return this.name;
 		}
 		else {
-			return (other.name != null ? other.name : null);
+			return other.name;
 		}
 	}
 
@@ -209,6 +213,7 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 	 * @return a new instance in case all conditions match; or {@code null} otherwise
 	 */
 	@Override
+	@Nullable
 	public RequestMappingInfo getMatchingCondition(HttpServletRequest request) {
 		RequestMethodsRequestCondition methods = this.methodsCondition.getMatchingCondition(request);
 		ParamsRequestCondition params = this.paramsCondition.getMatchingCondition(request);
@@ -418,8 +423,10 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 
 		private String[] produces = new String[0];
 
+		@Nullable
 		private String mappingName;
 
+		@Nullable
 		private RequestCondition<?> customCondition;
 
 		private BuilderConfiguration options = new BuilderConfiguration();
@@ -511,8 +518,10 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 	 */
 	public static class BuilderConfiguration {
 
+		@Nullable
 		private UrlPathHelper urlPathHelper;
 
+		@Nullable
 		private PathMatcher pathMatcher;
 
 		private boolean trailingSlashMatch = true;
@@ -521,6 +530,7 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 
 		private boolean registeredSuffixPatternMatch = false;
 
+		@Nullable
 		private ContentNegotiationManager contentNegotiationManager;
 
 		/**
@@ -528,7 +538,7 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 		 * <p>By default this is not set.
 		 * @since 4.2.8
 		 */
-		public void setUrlPathHelper(UrlPathHelper urlPathHelper) {
+		public void setUrlPathHelper(@Nullable UrlPathHelper urlPathHelper) {
 			this.urlPathHelper = urlPathHelper;
 		}
 
@@ -544,7 +554,7 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 		 * Set a custom PathMatcher to use for the PatternsRequestCondition.
 		 * <p>By default this is not set.
 		 */
-		public void setPathMatcher(PathMatcher pathMatcher) {
+		public void setPathMatcher(@Nullable PathMatcher pathMatcher) {
 			this.pathMatcher = pathMatcher;
 		}
 
@@ -614,7 +624,7 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 		 */
 		@Nullable
 		public List<String> getFileExtensions() {
-			if (useRegisteredSuffixPatternMatch() && getContentNegotiationManager() != null) {
+			if (useRegisteredSuffixPatternMatch() && this.contentNegotiationManager != null) {
 				return this.contentNegotiationManager.getAllFileExtensions();
 			}
 			return null;

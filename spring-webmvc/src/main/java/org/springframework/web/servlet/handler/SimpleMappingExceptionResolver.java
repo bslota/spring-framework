@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -49,16 +48,21 @@ public class SimpleMappingExceptionResolver extends AbstractHandlerExceptionReso
 	public static final String DEFAULT_EXCEPTION_ATTRIBUTE = "exception";
 
 
+	@Nullable
 	private Properties exceptionMappings;
 
+	@Nullable
 	private Class<?>[] excludedExceptions;
 
+	@Nullable
 	private String defaultErrorView;
 
+	@Nullable
 	private Integer defaultStatusCode;
 
 	private Map<String, Integer> statusCodes = new HashMap<>();
 
+	@Nullable
 	private String exceptionAttribute = DEFAULT_EXCEPTION_ATTRIBUTE;
 
 
@@ -172,11 +176,13 @@ public class SimpleMappingExceptionResolver extends AbstractHandlerExceptionReso
 	 * @param handler the executed handler, or {@code null} if none chosen at the time
 	 * of the exception (for example, if multipart resolution failed)
 	 * @param ex the exception that got thrown during handler execution
-	 * @return a corresponding ModelAndView to forward to, or {@code null} for default processing
+	 * @return a corresponding {@code ModelAndView} to forward to,
+	 * or {@code null} for default processing in the resolution chain
 	 */
 	@Override
-	protected ModelAndView doResolveException(HttpServletRequest request, HttpServletResponse response,
-			@Nullable Object handler, Exception ex) {
+	@Nullable
+	protected ModelAndView doResolveException(
+			HttpServletRequest request, HttpServletResponse response, @Nullable Object handler, Exception ex) {
 
 		// Expose ModelAndView for chosen error view.
 		String viewName = determineViewName(ex, request);

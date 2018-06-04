@@ -75,22 +75,28 @@ import org.springframework.web.util.WebUtils;
  */
 public class XsltView extends AbstractUrlBasedView {
 
+	@Nullable
 	private Class<? extends TransformerFactory> transformerFactoryClass;
 
+	@Nullable
 	private String sourceKey;
 
+	@Nullable
 	private URIResolver uriResolver;
 
 	private ErrorListener errorListener = new SimpleTransformErrorListener(logger);
 
 	private boolean indent = true;
 
+	@Nullable
 	private Properties outputProperties;
 
 	private boolean cacheTemplates = true;
 
+	@Nullable
 	private TransformerFactory transformerFactory;
 
+	@Nullable
 	private Templates cachedTemplates;
 
 
@@ -196,7 +202,9 @@ public class XsltView extends AbstractUrlBasedView {
 	 * @see #setTransformerFactoryClass
 	 * @see #getTransformerFactory()
 	 */
-	protected TransformerFactory newTransformerFactory(@Nullable Class<? extends TransformerFactory> transformerFactoryClass) {
+	protected TransformerFactory newTransformerFactory(
+			@Nullable Class<? extends TransformerFactory> transformerFactoryClass) {
+
 		if (transformerFactoryClass != null) {
 			try {
 				return ReflectionUtils.accessibleConstructor(transformerFactoryClass).newInstance();
@@ -215,6 +223,7 @@ public class XsltView extends AbstractUrlBasedView {
 	 * @return the TransformerFactory (never {@code null})
 	 */
 	protected final TransformerFactory getTransformerFactory() {
+		Assert.state(this.transformerFactory != null, "No TransformerFactory available");
 		return this.transformerFactory;
 	}
 
@@ -335,7 +344,9 @@ public class XsltView extends AbstractUrlBasedView {
 	 * @see #copyOutputProperties(Transformer)
 	 * @see #configureIndentation(Transformer)
 	 */
-	protected void configureTransformer(Map<String, Object> model, HttpServletResponse response, Transformer transformer) {
+	protected void configureTransformer(Map<String, Object> model, HttpServletResponse response,
+			Transformer transformer) {
+
 		copyModelParameters(model, transformer);
 		copyOutputProperties(transformer);
 		configureIndentation(transformer);
@@ -416,7 +427,7 @@ public class XsltView extends AbstractUrlBasedView {
 	private Templates loadTemplates() throws ApplicationContextException {
 		Source stylesheetSource = getStylesheetSource();
 		try {
-			Templates templates = this.transformerFactory.newTemplates(stylesheetSource);
+			Templates templates = getTransformerFactory().newTemplates(stylesheetSource);
 			if (logger.isDebugEnabled()) {
 				logger.debug("Loading templates '" + templates + "'");
 			}

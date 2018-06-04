@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,20 +78,27 @@ public class FreeMarkerConfigurationFactory {
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
+	@Nullable
 	private Resource configLocation;
 
+	@Nullable
 	private Properties freemarkerSettings;
 
+	@Nullable
 	private Map<String, Object> freemarkerVariables;
 
+	@Nullable
 	private String defaultEncoding;
 
 	private final List<TemplateLoader> templateLoaders = new ArrayList<>();
 
+	@Nullable
 	private List<TemplateLoader> preTemplateLoaders;
 
+	@Nullable
 	private List<TemplateLoader> postTemplateLoaders;
 
+	@Nullable
 	private String[] templateLoaderPaths;
 
 	private ResourceLoader resourceLoader = new DefaultResourceLoader();
@@ -383,15 +390,14 @@ public class FreeMarkerConfigurationFactory {
 	 */
 	@Nullable
 	protected TemplateLoader getAggregateTemplateLoader(List<TemplateLoader> templateLoaders) {
-		int loaderCount = templateLoaders.size();
-		switch (loaderCount) {
+		switch (templateLoaders.size()) {
 			case 0:
 				logger.info("No FreeMarker TemplateLoaders specified");
 				return null;
 			case 1:
 				return templateLoaders.get(0);
 			default:
-				TemplateLoader[] loaders = templateLoaders.toArray(new TemplateLoader[loaderCount]);
+				TemplateLoader[] loaders = templateLoaders.toArray(new TemplateLoader[0]);
 				return new MultiTemplateLoader(loaders);
 		}
 	}

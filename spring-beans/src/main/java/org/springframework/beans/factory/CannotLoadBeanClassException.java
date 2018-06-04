@@ -29,10 +29,13 @@ import org.springframework.lang.Nullable;
 @SuppressWarnings("serial")
 public class CannotLoadBeanClassException extends FatalBeanException {
 
+	@Nullable
 	private String resourceDescription;
 
+	@Nullable
 	private String beanName;
 
+	@Nullable
 	private String beanClassName;
 
 
@@ -47,7 +50,7 @@ public class CannotLoadBeanClassException extends FatalBeanException {
 	public CannotLoadBeanClassException(
 			@Nullable String resourceDescription, String beanName, @Nullable String beanClassName, ClassNotFoundException cause) {
 
-		super("Cannot find class [" + String.valueOf(beanClassName) + "] for bean with name '" + beanName + "'" +
+		super("Cannot find class [" + beanClassName + "] for bean with name '" + beanName + "'" +
 				(resourceDescription != null ? " defined in " + resourceDescription : ""), cause);
 		this.resourceDescription = resourceDescription;
 		this.beanName = beanName;
@@ -65,7 +68,7 @@ public class CannotLoadBeanClassException extends FatalBeanException {
 	public CannotLoadBeanClassException(
 			@Nullable String resourceDescription, String beanName, @Nullable String beanClassName, LinkageError cause) {
 
-		super("Error loading class [" + String.valueOf(beanClassName) + "] for bean with name '" + beanName + "'" +
+		super("Error loading class [" + beanClassName + "] for bean with name '" + beanName + "'" +
 				(resourceDescription != null ? " defined in " + resourceDescription : "") +
 				": problem with class file or dependent class", cause);
 		this.resourceDescription = resourceDescription;
@@ -78,6 +81,7 @@ public class CannotLoadBeanClassException extends FatalBeanException {
 	 * Return the description of the resource that the bean
 	 * definition came from.
 	 */
+	@Nullable
 	public String getResourceDescription() {
 		return this.resourceDescription;
 	}
@@ -85,6 +89,7 @@ public class CannotLoadBeanClassException extends FatalBeanException {
 	/**
 	 * Return the name of the bean requested.
 	 */
+	@Nullable
 	public String getBeanName() {
 		return this.beanName;
 	}
@@ -92,6 +97,7 @@ public class CannotLoadBeanClassException extends FatalBeanException {
 	/**
 	 * Return the name of the class we were trying to load.
 	 */
+	@Nullable
 	public String getBeanClassName() {
 		return this.beanClassName;
 	}

@@ -45,6 +45,7 @@ public class UrlResource extends AbstractFileResolvingResource {
 	/**
 	 * Original URI, if available; used for URI and File access.
 	 */
+	@Nullable
 	private final URI uri;
 
 	/**
@@ -182,7 +183,7 @@ public class UrlResource extends AbstractFileResolvingResource {
 	 * This implementation returns the underlying URL reference.
 	 */
 	@Override
-	public URL getURL() throws IOException {
+	public URL getURL() {
 		return this.url;
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,20 +91,26 @@ import org.springframework.util.ClassUtils;
  */
 public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 
+	@Nullable
 	private ConversionService conversionService;
 
 	private boolean defaultEditorsActive = false;
 
 	private boolean configValueEditorsActive = false;
 
+	@Nullable
 	private Map<Class<?>, PropertyEditor> defaultEditors;
 
+	@Nullable
 	private Map<Class<?>, PropertyEditor> overriddenDefaultEditors;
 
+	@Nullable
 	private Map<Class<?>, PropertyEditor> customEditors;
 
+	@Nullable
 	private Map<String, CustomEditorHolder> customEditorsForPath;
 
+	@Nullable
 	private Map<Class<?>, PropertyEditor> customEditorCache;
 
 
@@ -343,10 +349,9 @@ public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 	public boolean hasCustomEditorForElement(@Nullable Class<?> elementType, @Nullable String propertyPath) {
 		if (propertyPath != null && this.customEditorsForPath != null) {
 			for (Map.Entry<String, CustomEditorHolder> entry : this.customEditorsForPath.entrySet()) {
-				if (PropertyAccessorUtils.matchesProperty(entry.getKey(), propertyPath)) {
-					if (entry.getValue().getPropertyEditor(elementType) != null) {
-						return true;
-					}
+				if (PropertyAccessorUtils.matchesProperty(entry.getKey(), propertyPath) &&
+						entry.getValue().getPropertyEditor(elementType) != null) {
+					return true;
 				}
 			}
 		}
@@ -378,7 +383,8 @@ public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 	 */
 	@Nullable
 	private PropertyEditor getCustomEditor(String propertyName, @Nullable Class<?> requiredType) {
-		CustomEditorHolder holder = this.customEditorsForPath.get(propertyName);
+		CustomEditorHolder holder =
+				(this.customEditorsForPath != null ? this.customEditorsForPath.get(propertyName) : null);
 		return (holder != null ? holder.getPropertyEditor(requiredType) : null);
 	}
 
@@ -460,9 +466,7 @@ public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 			this.customEditors.forEach(target::registerCustomEditor);
 		}
 		if (this.customEditorsForPath != null) {
-			for (Map.Entry<String, CustomEditorHolder> entry : this.customEditorsForPath.entrySet()) {
-				String editorPath = entry.getKey();
-				CustomEditorHolder editorHolder = entry.getValue();
+			this.customEditorsForPath.forEach((editorPath, editorHolder) -> {
 				if (nestedProperty != null) {
 					int pos = PropertyAccessorUtils.getFirstNestedPropertySeparatorIndex(editorPath);
 					if (pos != -1) {
@@ -478,7 +482,7 @@ public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 					target.registerCustomEditor(
 							editorHolder.getRegisteredType(), editorPath, editorHolder.getPropertyEditor());
 				}
-			}
+			});
 		}
 	}
 
@@ -517,6 +521,7 @@ public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 
 		private final PropertyEditor propertyEditor;
 
+		@Nullable
 		private final Class<?> registeredType;
 
 		private CustomEditorHolder(PropertyEditor propertyEditor, @Nullable Class<?> registeredType) {
@@ -533,6 +538,7 @@ public class PropertyEditorRegistrySupport implements PropertyEditorRegistry {
 			return this.registeredType;
 		}
 
+		@Nullable
 		private PropertyEditor getPropertyEditor(@Nullable Class<?> requiredType) {
 			// Special case: If no required type specified, which usually only happens for
 			// Collection elements, or required type is not assignable to registered type,

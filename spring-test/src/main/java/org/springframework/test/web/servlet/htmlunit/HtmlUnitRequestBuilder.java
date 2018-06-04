@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,12 +75,16 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 
 	private final WebRequest webRequest;
 
+	@Nullable
 	private String contextPath;
 
+	@Nullable
 	private RequestBuilder parentBuilder;
 
+	@Nullable
 	private SmartRequestBuilder parentPostProcessor;
 
+	@Nullable
 	private RequestPostProcessor forwardPostProcessor;
 
 
@@ -291,7 +295,7 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 		}
 
 		if (!ObjectUtils.isEmpty(cookies)) {
-			request.setCookies(cookies.toArray(new Cookie[cookies.size()]));
+			request.setCookies(cookies.toArray(new Cookie[0]));
 		}
 	}
 
@@ -442,6 +446,7 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 			super(servletContext, method, requestURI);
 		}
 
+		@Override
 		public HttpSession getSession(boolean create) {
 			HttpSession session = super.getSession(false);
 			if (session == null && create) {
@@ -456,14 +461,6 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 				session = newSession;
 			}
 			return session;
-		}
-
-		public HttpSession getSession() {
-			return super.getSession();
-		}
-
-		public void setSession(HttpSession session) {
-			super.setSession(session);
 		}
 	}
 
@@ -487,6 +484,7 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 			this.request = request;
 		}
 
+		@Override
 		public void invalidate() {
 			super.invalidate();
 			synchronized (HtmlUnitRequestBuilder.this.sessions) {

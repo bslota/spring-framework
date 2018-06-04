@@ -33,7 +33,10 @@ import org.springframework.util.ObjectUtils;
  * {@link org.springframework.web.client.RestTemplate#exchange(RequestEntity, Class) exchange()}:
  * <pre class="code">
  * MyRequest body = ...
- * RequestEntity&lt;MyRequest&gt; request = RequestEntity.post(new URI(&quot;http://example.com/bar&quot;)).accept(MediaType.APPLICATION_JSON).body(body);
+ * RequestEntity&lt;MyRequest&gt; request = RequestEntity
+ *     .post(new URI(&quot;http://example.com/bar&quot;))
+ *     .accept(MediaType.APPLICATION_JSON)
+ *     .body(body);
  * ResponseEntity&lt;MyResponse&gt; response = template.exchange(request, MyResponse.class);
  * </pre>
  *
@@ -62,10 +65,12 @@ import org.springframework.util.ObjectUtils;
  */
 public class RequestEntity<T> extends HttpEntity<T> {
 
+	@Nullable
 	private final HttpMethod method;
 
 	private final URI url;
 
+	@Nullable
 	private final Type type;
 
 

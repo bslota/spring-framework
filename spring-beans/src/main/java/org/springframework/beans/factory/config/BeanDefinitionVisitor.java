@@ -47,6 +47,7 @@ import org.springframework.util.StringValueResolver;
  */
 public class BeanDefinitionVisitor {
 
+	@Nullable
 	private StringValueResolver valueResolver;
 
 
@@ -80,10 +81,14 @@ public class BeanDefinitionVisitor {
 		visitFactoryBeanName(beanDefinition);
 		visitFactoryMethodName(beanDefinition);
 		visitScope(beanDefinition);
-		visitPropertyValues(beanDefinition.getPropertyValues());
-		ConstructorArgumentValues cas = beanDefinition.getConstructorArgumentValues();
-		visitIndexedArgumentValues(cas.getIndexedArgumentValues());
-		visitGenericArgumentValues(cas.getGenericArgumentValues());
+		if (beanDefinition.hasPropertyValues()) {
+			visitPropertyValues(beanDefinition.getPropertyValues());
+		}
+		if (beanDefinition.hasConstructorArgumentValues()) {
+			ConstructorArgumentValues cas = beanDefinition.getConstructorArgumentValues();
+			visitIndexedArgumentValues(cas.getIndexedArgumentValues());
+			visitGenericArgumentValues(cas.getGenericArgumentValues());
+		}
 	}
 
 	protected void visitParentName(BeanDefinition beanDefinition) {

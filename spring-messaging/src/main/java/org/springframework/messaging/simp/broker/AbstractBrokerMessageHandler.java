@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ import org.springframework.messaging.SubscribableChannel;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.support.ChannelInterceptor;
-import org.springframework.messaging.support.ChannelInterceptorAdapter;
 import org.springframework.messaging.support.InterceptableChannel;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -59,6 +58,7 @@ public abstract class AbstractBrokerMessageHandler
 
 	private final Collection<String> destinationPrefixes;
 
+	@Nullable
 	private ApplicationEventPublisher eventPublisher;
 
 	private AtomicBoolean brokerAvailable = new AtomicBoolean(false);
@@ -128,10 +128,11 @@ public abstract class AbstractBrokerMessageHandler
 	}
 
 	@Override
-	public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
+	public void setApplicationEventPublisher(@Nullable ApplicationEventPublisher publisher) {
 		this.eventPublisher = publisher;
 	}
 
+	@Nullable
 	public ApplicationEventPublisher getApplicationEventPublisher() {
 		return this.eventPublisher;
 	}
@@ -154,9 +155,7 @@ public abstract class AbstractBrokerMessageHandler
 	@Override
 	public void start() {
 		synchronized (this.lifecycleMonitor) {
-			if (logger.isInfoEnabled()) {
-				logger.info("Starting...");
-			}
+			logger.info("Starting...");
 			this.clientInboundChannel.subscribe(this);
 			this.brokerChannel.subscribe(this);
 			if (this.clientInboundChannel instanceof InterceptableChannel) {
@@ -174,9 +173,7 @@ public abstract class AbstractBrokerMessageHandler
 	@Override
 	public void stop() {
 		synchronized (this.lifecycleMonitor) {
-			if (logger.isInfoEnabled()) {
-				logger.info("Stopping...");
-			}
+			logger.info("Stopping...");
 			stopInternal();
 			this.clientInboundChannel.unsubscribe(this);
 			this.brokerChannel.unsubscribe(this);
@@ -207,9 +204,7 @@ public abstract class AbstractBrokerMessageHandler
 	 */
 	@Override
 	public final boolean isRunning() {
-		synchronized (this.lifecycleMonitor) {
-			return this.running;
-		}
+		return this.running;
 	}
 
 	/**
@@ -278,10 +273,12 @@ public abstract class AbstractBrokerMessageHandler
 	/**
 	 * Detect unsent DISCONNECT messages and process them anyway.
 	 */
-	private class UnsentDisconnectChannelInterceptor extends ChannelInterceptorAdapter {
+	private class UnsentDisconnectChannelInterceptor implements ChannelInterceptor {
 
 		@Override
-		public void afterSendCompletion(Message<?> message, MessageChannel channel, boolean sent, Exception ex) {
+		public void afterSendCompletion(
+				Message<?> message, MessageChannel channel, boolean sent, @Nullable Exception ex) {
+
 			if (!sent) {
 				SimpMessageType messageType = SimpMessageHeaderAccessor.getMessageType(message.getHeaders());
 				if (SimpMessageType.DISCONNECT.equals(messageType)) {

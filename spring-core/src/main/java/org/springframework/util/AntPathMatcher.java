@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,6 +90,7 @@ public class AntPathMatcher implements PathMatcher {
 
 	private boolean trimTokens = false;
 
+	@Nullable
 	private volatile Boolean cachePatterns;
 
 	private final Map<String, String[]> tokenizedPatternCache = new ConcurrentHashMap<>(256);
@@ -597,7 +598,7 @@ public class AntPathMatcher implements PathMatcher {
 	/**
 	 * Given a full path, returns a {@link Comparator} suitable for sorting patterns in order of
 	 * explicitness.
-	 * <p>This{@code Comparator} will {@linkplain java.util.Collections#sort(List, Comparator) sort}
+	 * <p>This{@code Comparator} will {@linkplain java.util.List#sort(Comparator) sort}
 	 * a list so that more specific patterns (without uri templates or wild cards) come before
 	 * generic patterns. So given a list with the following patterns:
 	 * <ol>
@@ -800,6 +801,7 @@ public class AntPathMatcher implements PathMatcher {
 		 */
 		private static class PatternInfo {
 
+			@Nullable
 			private final String pattern;
 
 			private int uriVars;
@@ -812,6 +814,7 @@ public class AntPathMatcher implements PathMatcher {
 
 			private boolean prefixPattern;
 
+			@Nullable
 			private Integer length;
 
 			public PatternInfo(@Nullable String pattern) {
@@ -828,26 +831,28 @@ public class AntPathMatcher implements PathMatcher {
 
 			protected void initCounters() {
 				int pos = 0;
-				while (pos < this.pattern.length()) {
-					if (this.pattern.charAt(pos) == '{') {
-						this.uriVars++;
-						pos++;
-					}
-					else if (this.pattern.charAt(pos) == '*') {
-						if (pos + 1 < this.pattern.length() && this.pattern.charAt(pos + 1) == '*') {
-							this.doubleWildcards++;
-							pos += 2;
-						}
-						else if (pos > 0 && !this.pattern.substring(pos - 1).equals(".*")) {
-							this.singleWildcards++;
+				if (this.pattern != null) {
+					while (pos < this.pattern.length()) {
+						if (this.pattern.charAt(pos) == '{') {
+							this.uriVars++;
 							pos++;
+						}
+						else if (this.pattern.charAt(pos) == '*') {
+							if (pos + 1 < this.pattern.length() && this.pattern.charAt(pos + 1) == '*') {
+								this.doubleWildcards++;
+								pos += 2;
+							}
+							else if (pos > 0 && !this.pattern.substring(pos - 1).equals(".*")) {
+								this.singleWildcards++;
+								pos++;
+							}
+							else {
+								pos++;
+							}
 						}
 						else {
 							pos++;
 						}
-					}
-					else {
-						pos++;
 					}
 				}
 			}
@@ -881,7 +886,8 @@ public class AntPathMatcher implements PathMatcher {
 			 */
 			public int getLength() {
 				if (this.length == null) {
-					this.length = VARIABLE_PATTERN.matcher(this.pattern).replaceAll("#").length();
+					this.length = (this.pattern != null ?
+							VARIABLE_PATTERN.matcher(this.pattern).replaceAll("#").length() : 0);
 				}
 				return this.length;
 			}

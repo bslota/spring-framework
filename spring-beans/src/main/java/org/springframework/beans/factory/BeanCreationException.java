@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,10 +34,13 @@ import org.springframework.lang.Nullable;
 @SuppressWarnings("serial")
 public class BeanCreationException extends FatalBeanException {
 
+	@Nullable
 	private String beanName;
 
+	@Nullable
 	private String resourceDescription;
 
+	@Nullable
 	private List<Throwable> relatedCauses;
 
 
@@ -119,6 +122,7 @@ public class BeanCreationException extends FatalBeanException {
 	/**
 	 * Return the name of the bean requested, if any.
 	 */
+	@Nullable
 	public String getBeanName() {
 		return this.beanName;
 	}
@@ -145,7 +149,7 @@ public class BeanCreationException extends FatalBeanException {
 		if (this.relatedCauses == null) {
 			return null;
 		}
-		return this.relatedCauses.toArray(new Throwable[this.relatedCauses.size()]);
+		return this.relatedCauses.toArray(new Throwable[0]);
 	}
 
 

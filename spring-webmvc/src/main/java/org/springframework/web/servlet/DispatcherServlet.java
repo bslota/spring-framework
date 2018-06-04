@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -307,30 +307,39 @@ public class DispatcherServlet extends FrameworkServlet {
 	private boolean cleanupAfterInclude = true;
 
 	/** MultipartResolver used by this servlet */
+	@Nullable
 	private MultipartResolver multipartResolver;
 
 	/** LocaleResolver used by this servlet */
+	@Nullable
 	private LocaleResolver localeResolver;
 
 	/** ThemeResolver used by this servlet */
+	@Nullable
 	private ThemeResolver themeResolver;
 
 	/** List of HandlerMappings used by this servlet */
+	@Nullable
 	private List<HandlerMapping> handlerMappings;
 
 	/** List of HandlerAdapters used by this servlet */
+	@Nullable
 	private List<HandlerAdapter> handlerAdapters;
 
 	/** List of HandlerExceptionResolvers used by this servlet */
+	@Nullable
 	private List<HandlerExceptionResolver> handlerExceptionResolvers;
 
 	/** RequestToViewNameTranslator used by this servlet */
+	@Nullable
 	private RequestToViewNameTranslator viewNameTranslator;
 
 	/** FlashMapManager used by this servlet */
+	@Nullable
 	private FlashMapManager flashMapManager;
 
 	/** List of ViewResolvers used by this servlet */
+	@Nullable
 	private List<ViewResolver> viewResolvers;
 
 
@@ -770,12 +779,7 @@ public class DispatcherServlet extends FrameworkServlet {
 	 */
 	@Nullable
 	public final ThemeSource getThemeSource() {
-		if (getWebApplicationContext() instanceof ThemeSource) {
-			return (ThemeSource) getWebApplicationContext();
-		}
-		else {
-			return null;
-		}
+		return (getWebApplicationContext() instanceof ThemeSource ? (ThemeSource) getWebApplicationContext() : null);
 	}
 
 	/**
@@ -786,6 +790,21 @@ public class DispatcherServlet extends FrameworkServlet {
 	@Nullable
 	public final MultipartResolver getMultipartResolver() {
 		return this.multipartResolver;
+	}
+
+	/**
+	 * Return the configured {@link HandlerMapping} beans that were detected by
+	 * type in the {@link WebApplicationContext} or initialized based on the
+	 * default set of strategies from {@literal DispatcherServlet.properties}.
+	 * <p><strong>Note:</strong> This method may return {@code null} if invoked
+	 * prior to {@link #onRefresh(ApplicationContext)}.
+	 * @return an immutable list with the configured mappings, or {@code null}
+	 * if not initialized yet
+	 * @since 5.0
+	 */
+	@Nullable
+	public final List<HandlerMapping> getHandlerMappings() {
+		return (this.handlerMappings != null ? Collections.unmodifiableList(this.handlerMappings) : null);
 	}
 
 	/**
@@ -831,12 +850,12 @@ public class DispatcherServlet extends FrameworkServlet {
 				catch (ClassNotFoundException ex) {
 					throw new BeanInitializationException(
 							"Could not find DispatcherServlet's default strategy class [" + className +
-									"] for interface [" + key + "]", ex);
+							"] for interface [" + key + "]", ex);
 				}
 				catch (LinkageError err) {
 					throw new BeanInitializationException(
-							"Error loading DispatcherServlet's default strategy class [" + className +
-									"] for interface [" + key + "]: problem with class file or dependent class", err);
+							"Unresolvable class definition for DispatcherServlet's default strategy class [" +
+							className + "] for interface [" + key + "]", err);
 				}
 			}
 			return strategies;
@@ -893,12 +912,14 @@ public class DispatcherServlet extends FrameworkServlet {
 		request.setAttribute(THEME_RESOLVER_ATTRIBUTE, this.themeResolver);
 		request.setAttribute(THEME_SOURCE_ATTRIBUTE, getThemeSource());
 
-		FlashMap inputFlashMap = this.flashMapManager.retrieveAndUpdate(request, response);
-		if (inputFlashMap != null) {
-			request.setAttribute(INPUT_FLASH_MAP_ATTRIBUTE, Collections.unmodifiableMap(inputFlashMap));
+		if (this.flashMapManager != null) {
+			FlashMap inputFlashMap = this.flashMapManager.retrieveAndUpdate(request, response);
+			if (inputFlashMap != null) {
+				request.setAttribute(INPUT_FLASH_MAP_ATTRIBUTE, Collections.unmodifiableMap(inputFlashMap));
+			}
+			request.setAttribute(OUTPUT_FLASH_MAP_ATTRIBUTE, new FlashMap());
+			request.setAttribute(FLASH_MAP_MANAGER_ATTRIBUTE, this.flashMapManager);
 		}
-		request.setAttribute(OUTPUT_FLASH_MAP_ATTRIBUTE, new FlashMap());
-		request.setAttribute(FLASH_MAP_MANAGER_ATTRIBUTE, this.flashMapManager);
 
 		try {
 			doDispatch(request, response);
@@ -941,7 +962,7 @@ public class DispatcherServlet extends FrameworkServlet {
 
 				// Determine handler for the current request.
 				mappedHandler = getHandler(processedRequest);
-				if (mappedHandler == null || mappedHandler.getHandler() == null) {
+				if (mappedHandler == null) {
 					noHandlerFound(processedRequest, response);
 					return;
 				}
@@ -1076,11 +1097,12 @@ public class DispatcherServlet extends FrameworkServlet {
 	 */
 	@Override
 	protected LocaleContext buildLocaleContext(final HttpServletRequest request) {
-		if (this.localeResolver instanceof LocaleContextResolver) {
-			return ((LocaleContextResolver) this.localeResolver).resolveLocaleContext(request);
+		LocaleResolver lr = this.localeResolver;
+		if (lr instanceof LocaleContextResolver) {
+			return ((LocaleContextResolver) lr).resolveLocaleContext(request);
 		}
 		else {
-			return () -> localeResolver.resolveLocale(request);
+			return () -> (lr != null ? lr.resolveLocale(request) : request.getLocale());
 		}
 	}
 
@@ -1140,10 +1162,12 @@ public class DispatcherServlet extends FrameworkServlet {
 	 * @see MultipartResolver#cleanupMultipart
 	 */
 	protected void cleanupMultipart(HttpServletRequest request) {
-		MultipartHttpServletRequest multipartRequest =
-				WebUtils.getNativeRequest(request, MultipartHttpServletRequest.class);
-		if (multipartRequest != null) {
-			this.multipartResolver.cleanupMultipart(multipartRequest);
+		if (this.multipartResolver != null) {
+			MultipartHttpServletRequest multipartRequest =
+					WebUtils.getNativeRequest(request, MultipartHttpServletRequest.class);
+			if (multipartRequest != null) {
+				this.multipartResolver.cleanupMultipart(multipartRequest);
+			}
 		}
 	}
 
@@ -1155,14 +1179,16 @@ public class DispatcherServlet extends FrameworkServlet {
 	 */
 	@Nullable
 	protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
-		for (HandlerMapping hm : this.handlerMappings) {
-			if (logger.isTraceEnabled()) {
-				logger.trace(
-						"Testing handler map [" + hm + "] in DispatcherServlet with name '" + getServletName() + "'");
-			}
-			HandlerExecutionChain handler = hm.getHandler(request);
-			if (handler != null) {
-				return handler;
+		if (this.handlerMappings != null) {
+			for (HandlerMapping hm : this.handlerMappings) {
+				if (logger.isTraceEnabled()) {
+					logger.trace(
+							"Testing handler map [" + hm + "] in DispatcherServlet with name '" + getServletName() + "'");
+				}
+				HandlerExecutionChain handler = hm.getHandler(request);
+				if (handler != null) {
+					return handler;
+				}
 			}
 		}
 		return null;
@@ -1194,12 +1220,14 @@ public class DispatcherServlet extends FrameworkServlet {
 	 * @throws ServletException if no HandlerAdapter can be found for the handler. This is a fatal error.
 	 */
 	protected HandlerAdapter getHandlerAdapter(Object handler) throws ServletException {
-		for (HandlerAdapter ha : this.handlerAdapters) {
-			if (logger.isTraceEnabled()) {
-				logger.trace("Testing handler adapter [" + ha + "]");
-			}
-			if (ha.supports(handler)) {
-				return ha;
+		if (this.handlerAdapters != null) {
+			for (HandlerAdapter ha : this.handlerAdapters) {
+				if (logger.isTraceEnabled()) {
+					logger.trace("Testing handler adapter [" + ha + "]");
+				}
+				if (ha.supports(handler)) {
+					return ha;
+				}
 			}
 		}
 		throw new ServletException("No adapter for handler [" + handler +
@@ -1220,12 +1248,17 @@ public class DispatcherServlet extends FrameworkServlet {
 	protected ModelAndView processHandlerException(HttpServletRequest request, HttpServletResponse response,
 			@Nullable Object handler, Exception ex) throws Exception {
 
+		// Success and error responses may use different content types
+		request.removeAttribute(HandlerMapping.PRODUCIBLE_MEDIA_TYPES_ATTRIBUTE);
+
 		// Check registered HandlerExceptionResolvers...
 		ModelAndView exMv = null;
-		for (HandlerExceptionResolver handlerExceptionResolver : this.handlerExceptionResolvers) {
-			exMv = handlerExceptionResolver.resolveException(request, response, handler, ex);
-			if (exMv != null) {
-				break;
+		if (this.handlerExceptionResolvers != null) {
+			for (HandlerExceptionResolver handlerExceptionResolver : this.handlerExceptionResolvers) {
+				exMv = handlerExceptionResolver.resolveException(request, response, handler, ex);
+				if (exMv != null) {
+					break;
+				}
 			}
 		}
 		if (exMv != null) {
@@ -1261,7 +1294,8 @@ public class DispatcherServlet extends FrameworkServlet {
 	 */
 	protected void render(ModelAndView mv, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		// Determine locale for request and apply it to the response.
-		Locale locale = this.localeResolver.resolveLocale(request);
+		Locale locale =
+				(this.localeResolver != null ? this.localeResolver.resolveLocale(request) : request.getLocale());
 		response.setLocale(locale);
 
 		View view;
@@ -1310,7 +1344,7 @@ public class DispatcherServlet extends FrameworkServlet {
 	 */
 	@Nullable
 	protected String getDefaultViewName(HttpServletRequest request) throws Exception {
-		return this.viewNameTranslator.getViewName(request);
+		return (this.viewNameTranslator != null ? this.viewNameTranslator.getViewName(request) : null);
 	}
 
 	/**
@@ -1331,10 +1365,12 @@ public class DispatcherServlet extends FrameworkServlet {
 	protected View resolveViewName(String viewName, @Nullable Map<String, Object> model,
 			Locale locale, HttpServletRequest request) throws Exception {
 
-		for (ViewResolver viewResolver : this.viewResolvers) {
-			View view = viewResolver.resolveViewName(viewName, locale);
-			if (view != null) {
-				return view;
+		if (this.viewResolvers != null) {
+			for (ViewResolver viewResolver : this.viewResolvers) {
+				View view = viewResolver.resolveViewName(viewName, locale);
+				if (view != null) {
+					return view;
+				}
 			}
 		}
 		return null;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,16 +20,16 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.core.ExceptionDepthComparator;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
+import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.util.ReflectionUtils.MethodFilter;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -50,17 +50,10 @@ public class ExceptionHandlerMethodResolver {
 	public static final MethodFilter EXCEPTION_HANDLER_METHODS = method ->
 			(AnnotationUtils.findAnnotation(method, ExceptionHandler.class) != null);
 
-	/**
-	 * Arbitrary {@link Method} reference, indicating no method found in the cache.
-	 */
-	private static final Method NO_METHOD_FOUND = ClassUtils.getMethodIfAvailable(System.class, "currentTimeMillis");
 
+	private final Map<Class<? extends Throwable>, Method> mappedMethods = new HashMap<>(16);
 
-	private final Map<Class<? extends Throwable>, Method> mappedMethods =
-			new ConcurrentHashMap<>(16);
-
-	private final Map<Class<? extends Throwable>, Method> exceptionLookupCache =
-			new ConcurrentHashMap<>(16);
+	private final Map<Class<? extends Throwable>, Method> exceptionLookupCache = new ConcurrentReferenceHashMap<>(16);
 
 
 	/**
@@ -91,7 +84,9 @@ public class ExceptionHandlerMethodResolver {
 				}
 			}
 		}
-		Assert.notEmpty(result, "No exception types mapped to {" + method + "}");
+		if (result.isEmpty()) {
+			throw new IllegalStateException("No exception types mapped to " + method);
+		}
 		return result;
 	}
 
@@ -157,9 +152,9 @@ public class ExceptionHandlerMethodResolver {
 		Method method = this.exceptionLookupCache.get(exceptionType);
 		if (method == null) {
 			method = getMappedMethod(exceptionType);
-			this.exceptionLookupCache.put(exceptionType, (method != null ? method : NO_METHOD_FOUND));
+			this.exceptionLookupCache.put(exceptionType, method);
 		}
-		return (method != NO_METHOD_FOUND ? method : null);
+		return method;
 	}
 
 	/**
@@ -174,7 +169,7 @@ public class ExceptionHandlerMethodResolver {
 			}
 		}
 		if (!matches.isEmpty()) {
-			Collections.sort(matches, new ExceptionDepthComparator(exceptionType));
+			matches.sort(new ExceptionDepthComparator(exceptionType));
 			return this.mappedMethods.get(matches.get(0));
 		}
 		else {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +56,7 @@ abstract class AbstractStaxXMLReader extends AbstractXMLReader {
 
 	private boolean namespacePrefixesFeature = false;
 
+	@Nullable
 	private Boolean isStandalone;
 
 	private final Map<String, String> namespaces = new LinkedHashMap<>();
@@ -183,12 +184,9 @@ abstract class AbstractStaxXMLReader extends AbstractXMLReader {
 	 * @see org.xml.sax.ContentHandler#startPrefixMapping(String, String)
 	 */
 	protected void startPrefixMapping(@Nullable String prefix, String namespace) throws SAXException {
-		if (getContentHandler() != null) {
+		if (getContentHandler() != null && StringUtils.hasLength(namespace)) {
 			if (prefix == null) {
 				prefix = "";
-			}
-			if (!StringUtils.hasLength(namespace)) {
-				return;
 			}
 			if (!namespace.equals(this.namespaces.get(prefix))) {
 				getContentHandler().startPrefixMapping(prefix, namespace);
@@ -202,11 +200,9 @@ abstract class AbstractStaxXMLReader extends AbstractXMLReader {
 	 * @see org.xml.sax.ContentHandler#endPrefixMapping(String)
 	 */
 	protected void endPrefixMapping(String prefix) throws SAXException {
-		if (getContentHandler() != null) {
-			if (this.namespaces.containsKey(prefix)) {
-				getContentHandler().endPrefixMapping(prefix);
-				this.namespaces.remove(prefix);
-			}
+		if (getContentHandler() != null && this.namespaces.containsKey(prefix)) {
+			getContentHandler().endPrefixMapping(prefix);
+			this.namespaces.remove(prefix);
 		}
 	}
 

@@ -61,6 +61,7 @@ public class KeyNamingStrategy implements ObjectNamingStrategy, InitializingBean
 	/**
 	 * Stores the mappings of bean key to {@code ObjectName}.
 	 */
+	@Nullable
 	private Properties mappings;
 
 	/**
@@ -68,12 +69,14 @@ public class KeyNamingStrategy implements ObjectNamingStrategy, InitializingBean
 	 * into the final merged set of {@code Properties} used for {@code ObjectName}
 	 * resolution.
 	 */
+	@Nullable
 	private Resource[] mappingLocations;
 
 	/**
 	 * Stores the result of merging the {@code mappings} {@code Properties}
 	 * with the properties stored in the resources defined by {@code mappingLocations}.
 	 */
+	@Nullable
 	private Properties mergedMappings;
 
 
@@ -107,7 +110,6 @@ public class KeyNamingStrategy implements ObjectNamingStrategy, InitializingBean
 	 * Merges the {@code Properties} configured in the {@code mappings} and
 	 * {@code mappingLocations} into the final {@code Properties} instance
 	 * used for {@code ObjectName} resolution.
-	 * @throws IOException
 	 */
 	@Override
 	public void afterPropertiesSet() throws IOException {

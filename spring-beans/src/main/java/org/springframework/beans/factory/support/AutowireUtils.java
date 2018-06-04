@@ -28,7 +28,6 @@ import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Set;
 
 import org.springframework.beans.BeanMetadataElement;
@@ -58,19 +57,16 @@ abstract class AutowireUtils {
 	 * @param constructors the constructor array to sort
 	 */
 	public static void sortConstructors(Constructor<?>[] constructors) {
-		Arrays.sort(constructors, new Comparator<Constructor<?>>() {
-			@Override
-			public int compare(Constructor<?> c1, Constructor<?> c2) {
-				boolean p1 = Modifier.isPublic(c1.getModifiers());
-				boolean p2 = Modifier.isPublic(c2.getModifiers());
-				if (p1 != p2) {
-					return (p1 ? -1 : 1);
-				}
-				int c1pl = c1.getParameterCount();
-				int c2pl = c2.getParameterCount();
-				return (c1pl < c2pl ? 1 : (c1pl > c2pl ? -1 : 0));
-			}
-		});
+		Arrays.sort(constructors, (c1, c2) -> {
+            boolean p1 = Modifier.isPublic(c1.getModifiers());
+            boolean p2 = Modifier.isPublic(c2.getModifiers());
+            if (p1 != p2) {
+                return (p1 ? -1 : 1);
+            }
+            int c1pl = c1.getParameterCount();
+            int c2pl = c2.getParameterCount();
+            return (c1pl < c2pl ? 1 : (c1pl > c2pl ? -1 : 0));
+        });
 	}
 
 	/**
@@ -81,19 +77,16 @@ abstract class AutowireUtils {
 	 * @param factoryMethods the factory method array to sort
 	 */
 	public static void sortFactoryMethods(Method[] factoryMethods) {
-		Arrays.sort(factoryMethods, new Comparator<Method>() {
-			@Override
-			public int compare(Method fm1, Method fm2) {
-				boolean p1 = Modifier.isPublic(fm1.getModifiers());
-				boolean p2 = Modifier.isPublic(fm2.getModifiers());
-				if (p1 != p2) {
-					return (p1 ? -1 : 1);
-				}
-				int c1pl = fm1.getParameterCount();
-				int c2pl = fm2.getParameterCount();
-				return (c1pl < c2pl ? 1 : (c1pl > c2pl ? -1 : 0));
-			}
-		});
+		Arrays.sort(factoryMethods, (fm1, fm2) -> {
+            boolean p1 = Modifier.isPublic(fm1.getModifiers());
+            boolean p2 = Modifier.isPublic(fm2.getModifiers());
+            if (p1 != p2) {
+                return (p1 ? -1 : 1);
+            }
+            int c1pl = fm1.getParameterCount();
+            int c2pl = fm2.getParameterCount();
+            return (c1pl < c2pl ? 1 : (c1pl > c2pl ? -1 : 0));
+        });
 	}
 
 	/**
@@ -145,7 +138,6 @@ abstract class AutowireUtils {
 	 * @param requiredType the type to assign the result to
 	 * @return the resolved value
 	 */
-	@Nullable
 	public static Object resolveAutowiringValue(Object autowiringValue, Class<?> requiredType) {
 		if (autowiringValue instanceof ObjectFactory && !requiredType.isInstance(autowiringValue)) {
 			ObjectFactory<?> factory = (ObjectFactory<?>) autowiringValue;
@@ -191,10 +183,11 @@ abstract class AutowireUtils {
 	 * @return the resolved target return type or the standard method return type
 	 * @since 3.2.5
 	 */
-	public static Class<?> resolveReturnTypeForFactoryMethod(Method method, Object[] args, ClassLoader classLoader) {
+	public static Class<?> resolveReturnTypeForFactoryMethod(
+			Method method, Object[] args, @Nullable ClassLoader classLoader) {
+
 		Assert.notNull(method, "Method must not be null");
 		Assert.notNull(args, "Argument array must not be null");
-		Assert.notNull(classLoader, "ClassLoader must not be null");
 
 		TypeVariable<Method>[] declaredTypeVariables = method.getTypeParameters();
 		Type genericReturnType = method.getGenericReturnType();

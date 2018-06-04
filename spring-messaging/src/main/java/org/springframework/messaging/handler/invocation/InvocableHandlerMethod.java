@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ public class InvocableHandlerMethod extends HandlerMethod {
 	 * @param message the current message being processed
 	 * @param providedArgs "given" arguments matched by type, not resolved
 	 * @return the raw value returned by the invoked method
-	 * @exception Exception raised if no suitable argument resolver can be found,
+	 * @throws Exception raised if no suitable argument resolver can be found,
 	 * or if the method raised an exception
 	 */
 	@Nullable
@@ -252,18 +252,19 @@ public class InvocableHandlerMethod extends HandlerMethod {
 	}
 
 
-	MethodParameter getAsyncReturnValueType(Object returnValue) {
+	MethodParameter getAsyncReturnValueType(@Nullable Object returnValue) {
 		return new AsyncResultMethodParameter(returnValue);
 	}
 
 
 	private class AsyncResultMethodParameter extends HandlerMethodParameter {
 
+		@Nullable
 		private final Object returnValue;
 
 		private final ResolvableType returnType;
 
-		public AsyncResultMethodParameter(Object returnValue) {
+		public AsyncResultMethodParameter(@Nullable Object returnValue) {
 			super(-1);
 			this.returnValue = returnValue;
 			this.returnType = ResolvableType.forType(super.getGenericParameterType()).getGeneric();

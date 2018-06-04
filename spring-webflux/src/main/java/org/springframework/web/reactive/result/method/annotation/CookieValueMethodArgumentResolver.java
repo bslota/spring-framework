@@ -16,8 +16,6 @@
 
 package org.springframework.web.reactive.result.method.annotation;
 
-import java.util.Optional;
-
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ReactiveAdapterRegistry;
@@ -46,7 +44,9 @@ public class CookieValueMethodArgumentResolver extends AbstractNamedValueSyncArg
 	 * or {@code null} if default values are not expected to contain expressions
 	 * @param registry for checking reactive type wrappers
 	 */
-	public CookieValueMethodArgumentResolver(@Nullable ConfigurableBeanFactory factory, ReactiveAdapterRegistry registry) {
+	public CookieValueMethodArgumentResolver(@Nullable ConfigurableBeanFactory factory,
+			ReactiveAdapterRegistry registry) {
+
 		super(factory, registry);
 	}
 
@@ -64,18 +64,13 @@ public class CookieValueMethodArgumentResolver extends AbstractNamedValueSyncArg
 	}
 
 	@Override
-	protected Optional<Object> resolveNamedValue(String name, MethodParameter parameter, ServerWebExchange exchange) {
+	protected Object resolveNamedValue(String name, MethodParameter parameter, ServerWebExchange exchange) {
 		HttpCookie cookie = exchange.getRequest().getCookies().getFirst(name);
 		Class<?> paramType = parameter.getNestedParameterType();
 		if (HttpCookie.class.isAssignableFrom(paramType)) {
-			return Optional.ofNullable(cookie);
+			return cookie;
 		}
-		else if (cookie != null) {
-			return Optional.of(cookie.getValue());
-		}
-		else {
-			return Optional.empty();
-		}
+		return (cookie != null ? cookie.getValue() : null);
 	}
 
 	@Override

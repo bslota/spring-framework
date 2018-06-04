@@ -90,6 +90,7 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 	private static final byte[] EMPTY_PAYLOAD = new byte[0];
 
 
+	@Nullable
 	private StompSubProtocolErrorHandler errorHandler;
 
 	private int messageSizeLimit = 64 * 1024;
@@ -100,12 +101,15 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 
 	private final Map<String, BufferingStompDecoder> decoders = new ConcurrentHashMap<>();
 
+	@Nullable
 	private MessageHeaderInitializer headerInitializer;
 
 	private final Map<String, Principal> stompAuthentications = new ConcurrentHashMap<>();
 
+	@Nullable
 	private Boolean immutableMessageInterceptorPresent;
 
+	@Nullable
 	private ApplicationEventPublisher eventPublisher;
 
 	private final Stats stats = new Stats();
@@ -172,7 +176,7 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 	 * client inbound channel.
 	 * <p>By default this property is not set.
 	 */
-	public void setHeaderInitializer(MessageHeaderInitializer headerInitializer) {
+	public void setHeaderInitializer(@Nullable MessageHeaderInitializer headerInitializer) {
 		this.headerInitializer = headerInitializer;
 		this.stompDecoder.setHeaderInitializer(headerInitializer);
 	}
@@ -254,12 +258,7 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 
 				headerAccessor.setSessionId(session.getId());
 				headerAccessor.setSessionAttributes(session.getAttributes());
-
-				Principal user = getUser(session);
-				if (user != null) {
-					headerAccessor.setUser(user);
-				}
-
+				headerAccessor.setUser(getUser(session));
 				headerAccessor.setHeader(SimpMessageHeaderAccessor.HEART_BEAT_HEADER, headerAccessor.getHeartbeat());
 				if (!detectImmutableMessageInterceptor(outputChannel)) {
 					headerAccessor.setImmutable();
@@ -269,11 +268,12 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 					logger.trace("From client: " + headerAccessor.getShortLogMessage(message.getPayload()));
 				}
 
-				boolean isConnect = StompCommand.CONNECT.equals(headerAccessor.getCommand());
+				StompCommand command = headerAccessor.getCommand();
+				boolean isConnect = StompCommand.CONNECT.equals(command);
 				if (isConnect) {
 					this.stats.incrementConnectCount();
 				}
-				else if (StompCommand.DISCONNECT.equals(headerAccessor.getCommand())) {
+				else if (StompCommand.DISCONNECT.equals(command)) {
 					this.stats.incrementDisconnectCount();
 				}
 
@@ -283,19 +283,21 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 
 					if (sent) {
 						if (isConnect) {
+							Principal user = headerAccessor.getUser();
 							if (user != null && user != session.getPrincipal()) {
 								this.stompAuthentications.put(session.getId(), user);
 							}
 						}
 						if (this.eventPublisher != null) {
+							Principal user = getUser(session);
 							if (isConnect) {
-								publishEvent(new SessionConnectEvent(this, message, user));
+								publishEvent(this.eventPublisher, new SessionConnectEvent(this, message, user));
 							}
-							else if (StompCommand.SUBSCRIBE.equals(headerAccessor.getCommand())) {
-								publishEvent(new SessionSubscribeEvent(this, message, user));
+							else if (StompCommand.SUBSCRIBE.equals(command)) {
+								publishEvent(this.eventPublisher, new SessionSubscribeEvent(this, message, user));
 							}
-							else if (StompCommand.UNSUBSCRIBE.equals(headerAccessor.getCommand())) {
-								publishEvent(new SessionUnsubscribeEvent(this, message, user));
+							else if (StompCommand.UNSUBSCRIBE.equals(command)) {
+								publishEvent(this.eventPublisher, new SessionUnsubscribeEvent(this, message, user));
 							}
 						}
 					}
@@ -372,9 +374,9 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 		return false;
 	}
 
-	private void publishEvent(ApplicationEvent event) {
+	private void publishEvent(ApplicationEventPublisher publisher, ApplicationEvent event) {
 		try {
-			this.eventPublisher.publishEvent(event);
+			publisher.publishEvent(event);
 		}
 		catch (Throwable ex) {
 			if (logger.isErrorEnabled()) {
@@ -418,7 +420,7 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 					SimpAttributes simpAttributes = new SimpAttributes(session.getId(), session.getAttributes());
 					SimpAttributesContextHolder.setAttributes(simpAttributes);
 					Principal user = getUser(session);
-					publishEvent(new SessionConnectedEvent(this, (Message<byte[]>) message, user));
+					publishEvent(this.eventPublisher, new SessionConnectedEvent(this, (Message<byte[]>) message, user));
 				}
 				finally {
 					SimpAttributesContextHolder.resetAttributes();
@@ -582,6 +584,7 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 	}
 
 	@Override
+	@Nullable
 	public String resolveSessionId(Message<?> message) {
 		return SimpMessageHeaderAccessor.getSessionId(message.getHeaders());
 	}
@@ -604,7 +607,7 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 			SimpAttributesContextHolder.setAttributes(simpAttributes);
 			if (this.eventPublisher != null) {
 				Principal user = getUser(session);
-				publishEvent(new SessionDisconnectEvent(this, message, session.getId(), closeStatus, user));
+				publishEvent(this.eventPublisher, new SessionDisconnectEvent(this, message, session.getId(), closeStatus, user));
 			}
 			outputChannel.send(message);
 		}

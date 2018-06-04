@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.PropertySources;
 import org.springframework.core.env.PropertySourcesPropertyResolver;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringValueResolver;
 
@@ -75,10 +76,13 @@ public class PropertySourcesPlaceholderConfigurer extends PlaceholderConfigurerS
 	public static final String ENVIRONMENT_PROPERTIES_PROPERTY_SOURCE_NAME = "environmentProperties";
 
 
+	@Nullable
 	private MutablePropertySources propertySources;
 
+	@Nullable
 	private PropertySources appliedPropertySources;
 
+	@Nullable
 	private Environment environment;
 
 
@@ -128,6 +132,7 @@ public class PropertySourcesPlaceholderConfigurer extends PlaceholderConfigurerS
 				this.propertySources.addLast(
 					new PropertySource<Environment>(ENVIRONMENT_PROPERTIES_PROPERTY_SOURCE_NAME, this.environment) {
 						@Override
+						@Nullable
 						public String getProperty(String key) {
 							return this.source.getProperty(key);
 						}
@@ -180,7 +185,7 @@ public class PropertySourcesPlaceholderConfigurer extends PlaceholderConfigurerS
 	/**
 	 * Implemented for compatibility with {@link org.springframework.beans.factory.config.PlaceholderConfigurerSupport}.
 	 * @deprecated in favor of {@link #processProperties(ConfigurableListableBeanFactory, ConfigurablePropertyResolver)}
-	 * @throws UnsupportedOperationException
+	 * @throws UnsupportedOperationException in this implementation
 	 */
 	@Override
 	@Deprecated

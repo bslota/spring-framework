@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -141,6 +141,7 @@ public class PropertiesBeanDefinitionReader extends AbstractBeanDefinitionReader
 	public static final String CONSTRUCTOR_ARG_PREFIX = "$";
 
 
+	@Nullable
 	private String defaultParentBean;
 
 	private PropertiesPersister propertiesPersister = new DefaultPropertiesPersister();
@@ -168,13 +169,14 @@ public class PropertiesBeanDefinitionReader extends AbstractBeanDefinitionReader
 	 * not apply to a bean definition that carries a class is there for
 	 * backwards compatibility reasons. It still matches the typical use case.
 	 */
-	public void setDefaultParentBean(String defaultParentBean) {
+	public void setDefaultParentBean(@Nullable String defaultParentBean) {
 		this.defaultParentBean = defaultParentBean;
 	}
 
 	/**
 	 * Return the default parent bean for this bean factory.
 	 */
+	@Nullable
 	public String getDefaultParentBean() {
 		return this.defaultParentBean;
 	}
@@ -247,17 +249,13 @@ public class PropertiesBeanDefinitionReader extends AbstractBeanDefinitionReader
 
 		Properties props = new Properties();
 		try {
-			InputStream is = encodedResource.getResource().getInputStream();
-			try {
+			try (InputStream is = encodedResource.getResource().getInputStream()) {
 				if (encodedResource.getEncoding() != null) {
 					getPropertiesPersister().load(props, new InputStreamReader(is, encodedResource.getEncoding()));
 				}
 				else {
 					getPropertiesPersister().load(props, is);
 				}
-			}
-			finally {
-				is.close();
 			}
 			return registerBeanDefinitions(props, prefix, encodedResource.getResource().getDescription());
 		}

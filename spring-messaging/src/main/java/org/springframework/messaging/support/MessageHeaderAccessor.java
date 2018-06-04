@@ -130,6 +130,7 @@ public class MessageHeaderAccessor {
 
 	private boolean enableTimestamp = false;
 
+	@Nullable
 	private IdGenerator idGenerator;
 
 
@@ -545,8 +546,9 @@ public class MessageHeaderAccessor {
 	}
 
 	protected boolean isReadableContentType() {
+		MimeType contentType = getContentType();
 		for (MimeType mimeType : READABLE_MIME_TYPES) {
-			if (mimeType.includes(getContentType())) {
+			if (mimeType.includes(contentType)) {
 				return true;
 			}
 		}

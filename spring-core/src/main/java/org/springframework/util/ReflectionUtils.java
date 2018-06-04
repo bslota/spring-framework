@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -448,6 +448,7 @@ public abstract class ReflectionUtils {
 	 * @param field the field to make accessible
 	 * @see java.lang.reflect.Field#setAccessible
 	 */
+	@SuppressWarnings("deprecation")  // on JDK 9
 	public static void makeAccessible(Field field) {
 		if ((!Modifier.isPublic(field.getModifiers()) ||
 				!Modifier.isPublic(field.getDeclaringClass().getModifiers()) ||
@@ -464,6 +465,7 @@ public abstract class ReflectionUtils {
 	 * @param method the method to make accessible
 	 * @see java.lang.reflect.Method#setAccessible
 	 */
+	@SuppressWarnings("deprecation")  // on JDK 9
 	public static void makeAccessible(Method method) {
 		if ((!Modifier.isPublic(method.getModifiers()) ||
 				!Modifier.isPublic(method.getDeclaringClass().getModifiers())) && !method.isAccessible()) {
@@ -479,6 +481,7 @@ public abstract class ReflectionUtils {
 	 * @param ctor the constructor to make accessible
 	 * @see java.lang.reflect.Constructor#setAccessible
 	 */
+	@SuppressWarnings("deprecation")  // on JDK 9
 	public static void makeAccessible(Constructor<?> ctor) {
 		if ((!Modifier.isPublic(ctor.getModifiers()) ||
 				!Modifier.isPublic(ctor.getDeclaringClass().getModifiers())) && !ctor.isAccessible()) {
@@ -580,8 +583,8 @@ public abstract class ReflectionUtils {
 	 */
 	public static Method[] getAllDeclaredMethods(Class<?> leafClass) {
 		final List<Method> methods = new ArrayList<>(32);
-		doWithMethods(leafClass, method -> methods.add(method));
-		return methods.toArray(new Method[methods.size()]);
+		doWithMethods(leafClass, methods::add);
+		return methods.toArray(new Method[0]);
 	}
 
 	/**
@@ -617,7 +620,7 @@ public abstract class ReflectionUtils {
 				methods.add(method);
 			}
 		});
-		return methods.toArray(new Method[methods.size()]);
+		return methods.toArray(new Method[0]);
 	}
 
 	/**
@@ -676,8 +679,7 @@ public abstract class ReflectionUtils {
 	}
 
 	/**
-	 * Invoke the given callback on all fields in the target class, going up the
-	 * class hierarchy to get all declared fields.
+	 * Invoke the given callback on all locally declared fields in the given class.
 	 * @param clazz the target class to analyze
 	 * @param fc the callback to invoke for each field
 	 * @since 4.2
@@ -860,10 +862,10 @@ public abstract class ReflectionUtils {
 
 
 	/**
-	 * Pre-built MethodFilter that matches all non-bridge methods
+	 * Pre-built MethodFilter that matches all non-bridge non-synthetic methods
 	 * which are not declared on {@code java.lang.Object}.
 	 */
 	public static final MethodFilter USER_DECLARED_METHODS =
-			(method -> (!method.isBridge() && method.getDeclaringClass() != Object.class));
+			(method -> (!method.isBridge() && !method.isSynthetic() && method.getDeclaringClass() != Object.class));
 
 }

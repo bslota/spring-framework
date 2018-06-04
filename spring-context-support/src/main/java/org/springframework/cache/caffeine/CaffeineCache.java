@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,6 +83,7 @@ public class CaffeineCache extends AbstractValueAdaptingCache {
 	}
 
 	@Override
+	@Nullable
 	public ValueWrapper get(Object key) {
 		if (this.cache instanceof LoadingCache) {
 			Object value = ((LoadingCache<Object, Object>) this.cache).get(key);
@@ -99,6 +100,7 @@ public class CaffeineCache extends AbstractValueAdaptingCache {
 	}
 
 	@Override
+	@Nullable
 	protected Object lookup(Object key) {
 		return this.cache.getIfPresent(key);
 	}
@@ -129,6 +131,7 @@ public class CaffeineCache extends AbstractValueAdaptingCache {
 
 	private class PutIfAbsentFunction implements Function<Object, Object> {
 
+		@Nullable
 		private final Object value;
 
 		private boolean called;

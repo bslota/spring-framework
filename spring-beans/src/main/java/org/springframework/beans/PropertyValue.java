@@ -44,18 +44,22 @@ public class PropertyValue extends BeanMetadataAttributeAccessor implements Seri
 
 	private final String name;
 
+	@Nullable
 	private final Object value;
 
 	private boolean optional = false;
 
 	private boolean converted = false;
 
+	@Nullable
 	private Object convertedValue;
 
 	/** Package-visible field that indicates whether conversion is necessary */
+	@Nullable
 	volatile Boolean conversionNecessary;
 
 	/** Package-visible field for caching the resolved property path tokens */
+	@Nullable
 	transient volatile Object resolvedTokens;
 
 
@@ -93,7 +97,7 @@ public class PropertyValue extends BeanMetadataAttributeAccessor implements Seri
 	 * @param original the PropertyValue to link to (never {@code null})
 	 * @param newValue the new value to apply
 	 */
-	public PropertyValue(PropertyValue original, Object newValue) {
+	public PropertyValue(PropertyValue original, @Nullable Object newValue) {
 		Assert.notNull(original, "Original must not be null");
 		this.name = original.getName();
 		this.value = newValue;
@@ -168,7 +172,7 @@ public class PropertyValue extends BeanMetadataAttributeAccessor implements Seri
 	 * Set the converted value of the constructor argument,
 	 * after processed type conversion.
 	 */
-	public synchronized void setConvertedValue(Object value) {
+	public synchronized void setConvertedValue(@Nullable Object value) {
 		this.converted = true;
 		this.convertedValue = value;
 	}
@@ -177,6 +181,7 @@ public class PropertyValue extends BeanMetadataAttributeAccessor implements Seri
 	 * Return the converted value of the constructor argument,
 	 * after processed type conversion.
 	 */
+	@Nullable
 	public synchronized Object getConvertedValue() {
 		return this.convertedValue;
 	}

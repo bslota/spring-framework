@@ -31,9 +31,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
+import org.springframework.http.client.reactive.ClientHttpRequest;
+import org.springframework.http.client.reactive.ClientHttpResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.ObjectUtils;
 
 /**
  * Container for request and response details for exchanges performed through
@@ -57,30 +60,41 @@ public class ExchangeResult {
 			MediaType.parseMediaType("text/*"), MediaType.APPLICATION_FORM_URLENCODED);
 
 
-	private final WiretapClientHttpRequest request;
+	private final ClientHttpRequest request;
 
-	private final WiretapClientHttpResponse response;
+	private final ClientHttpResponse response;
 
+	private final MonoProcessor<byte[]> requestBody;
+
+	private final MonoProcessor<byte[]> responseBody;
+
+	@Nullable
 	private final String uriTemplate;
 
 
 	/**
-	 * Constructor to use after the server response is first received in the
-	 * {@link WiretapConnector} and the {@code ClientHttpResponse} created.
+	 * Create an instance with an HTTP request and response along with promises
+	 * for the serialized request and response body content.
+	 *
+	 * @param request the HTTP request
+	 * @param response the HTTP response
+	 * @param requestBody capture of serialized request body content
+	 * @param responseBody capture of serialized response body content
+	 * @param uriTemplate the URI template used to set up the request, if any
 	 */
-	ExchangeResult(WiretapClientHttpRequest request, WiretapClientHttpResponse response) {
+	ExchangeResult(ClientHttpRequest request, ClientHttpResponse response,
+			MonoProcessor<byte[]> requestBody, MonoProcessor<byte[]> responseBody,
+			@Nullable String uriTemplate) {
+
+		Assert.notNull(request, "ClientHttpRequest is required");
+		Assert.notNull(response, "ClientHttpResponse is required");
+		Assert.notNull(requestBody, "'requestBody' is required");
+		Assert.notNull(responseBody, "'responseBody' is required");
+
 		this.request = request;
 		this.response = response;
-		this.uriTemplate = null;
-	}
-
-	/**
-	 * Constructor to copy the from the yet undecoded ExchangeResult with extra
-	 * information to expose such as the original URI template used, if any.
-	 */
-	ExchangeResult(ExchangeResult other, String uriTemplate) {
-		this.request = other.request;
-		this.response = other.response;
+		this.requestBody = requestBody;
+		this.responseBody = responseBody;
 		this.uriTemplate = uriTemplate;
 	}
 
@@ -90,6 +104,8 @@ public class ExchangeResult {
 	ExchangeResult(ExchangeResult other) {
 		this.request = other.request;
 		this.response = other.response;
+		this.requestBody = other.requestBody;
+		this.responseBody = other.responseBody;
 		this.uriTemplate = other.uriTemplate;
 	}
 
@@ -127,8 +143,9 @@ public class ExchangeResult {
 	 * Return the raw request body content written as a {@code byte[]}.
 	 * @throws IllegalStateException if the request body is not fully written yet.
 	 */
+	@Nullable
 	public byte[] getRequestBodyContent() {
-		MonoProcessor<byte[]> body = this.request.getRecordedContent();
+		MonoProcessor<byte[]> body = this.requestBody;
 		Assert.isTrue(body.isTerminated(), "Request body incomplete.");
 		return body.block(Duration.ZERO);
 	}
@@ -159,9 +176,10 @@ public class ExchangeResult {
 	 * Return the raw request body content written as a {@code byte[]}.
 	 * @throws IllegalStateException if the response is not fully read yet.
 	 */
+	@Nullable
 	public byte[] getResponseBodyContent() {
-		MonoProcessor<byte[]> body = this.response.getRecordedContent();
-		Assert.state(body.isTerminated(), "Response body incomplete.");
+		MonoProcessor<byte[]> body = this.responseBody;
+		Assert.state(body.isTerminated(), "Response body incomplete");
 		return body.block(Duration.ZERO);
 	}
 
@@ -187,12 +205,12 @@ public class ExchangeResult {
 				"> " + getMethod() + " " + getUrl() + "\n" +
 				"> " + formatHeaders(getRequestHeaders(), "\n> ") + "\n" +
 				"\n" +
-				formatBody(getRequestHeaders().getContentType(), this.request.getRecordedContent()) + "\n" +
+				formatBody(getRequestHeaders().getContentType(), this.requestBody) + "\n" +
 				"\n" +
 				"< " + getStatus() + " " + getStatusReason() + "\n" +
 				"< " + formatHeaders(getResponseHeaders(), "\n< ") + "\n" +
 				"\n" +
-				formatBody(getResponseHeaders().getContentType(), this.response.getRecordedContent()) +"\n";
+				formatBody(getResponseHeaders().getContentType(), this.responseBody) +"\n";
 	}
 
 	private String getStatusReason() {
@@ -208,27 +226,23 @@ public class ExchangeResult {
 	private String formatBody(@Nullable MediaType contentType, MonoProcessor<byte[]> body) {
 		if (body.isSuccess()) {
 			byte[] bytes = body.block(Duration.ZERO);
-			if (bytes.length == 0) {
+			if (ObjectUtils.isEmpty(bytes)) {
 				return "No content";
 			}
-
 			if (contentType == null) {
 				return "Unknown content type (" + bytes.length + " bytes)";
 			}
-
 			Charset charset = contentType.getCharset();
 			if (charset != null) {
 				return new String(bytes, charset);
 			}
-
 			if (PRINTABLE_MEDIA_TYPES.stream().anyMatch(contentType::isCompatibleWith)) {
 				return new String(bytes, StandardCharsets.UTF_8);
 			}
-
 			return "Unknown charset (" + bytes.length + " bytes)";
 		}
 		else if (body.isError()) {
-			return "I/O failure: " + body.getError().getMessage();
+			return "I/O failure: " + body.getError();
 		}
 		else {
 			return "Content not available yet";

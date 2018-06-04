@@ -69,10 +69,10 @@ public abstract class AbstractView extends WebApplicationObjectSupport implement
 	private static final int OUTPUT_BYTE_ARRAY_INITIAL_SIZE = 4096;
 
 
-	private String beanName;
-
+	@Nullable
 	private String contentType = DEFAULT_CONTENT_TYPE;
 
+	@Nullable
 	private String requestContextAttribute;
 
 	private final Map<String, Object> staticAttributes = new LinkedHashMap<>();
@@ -81,26 +81,13 @@ public abstract class AbstractView extends WebApplicationObjectSupport implement
 
 	private boolean exposeContextBeansAsAttributes = false;
 
-	private Set<String> exposedContextBeanNames;
-
-
-	/**
-	 * Set the view's name. Helpful for traceability.
-	 * <p>Framework code must call this when constructing views.
-	 */
-	@Override
-	public void setBeanName(String beanName) {
-		this.beanName = beanName;
-	}
-
-	/**
-	 * Return the view's name. Should never be {@code null},
-	 * if the view was correctly configured.
-	 */
 	@Nullable
-	public String getBeanName() {
-		return this.beanName;
-	}
+	private Set<String> exposedContextBeanNames;
+	
+	@Nullable
+	private String beanName;
+
+
 
 	/**
 	 * Set the content type for this view.
@@ -116,6 +103,7 @@ public abstract class AbstractView extends WebApplicationObjectSupport implement
 	 * Return the content type for this view.
 	 */
 	@Override
+	@Nullable
 	public String getContentType() {
 		return this.contentType;
 	}
@@ -148,7 +136,7 @@ public abstract class AbstractView extends WebApplicationObjectSupport implement
 			StringTokenizer st = new StringTokenizer(propString, ",");
 			while (st.hasMoreTokens()) {
 				String tok = st.nextToken();
-				int eqIdx = tok.indexOf("=");
+				int eqIdx = tok.indexOf('=');
 				if (eqIdx == -1) {
 					throw new IllegalArgumentException("Expected = in attributes CSV string '" + propString + "'");
 				}
@@ -287,6 +275,24 @@ public abstract class AbstractView extends WebApplicationObjectSupport implement
 		this.exposedContextBeanNames = new HashSet<>(Arrays.asList(exposedContextBeanNames));
 	}
 
+	/**
+	 * Set the view's name. Helpful for traceability.
+	 * <p>Framework code must call this when constructing views.
+	 */
+	@Override
+	public void setBeanName(@Nullable String beanName) {
+		this.beanName = beanName;
+	}
+
+	/**
+	 * Return the view's name. Should never be {@code null},
+	 * if the view was correctly configured.
+	 */
+	@Nullable
+	public String getBeanName() {
+		return this.beanName;
+	}
+
 
 	/**
 	 * Prepares the view given the specified model, merging it with static
@@ -295,7 +301,9 @@ public abstract class AbstractView extends WebApplicationObjectSupport implement
 	 * @see #renderMergedOutputModel
 	 */
 	@Override
-	public void render(@Nullable Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	public void render(@Nullable Map<String, ?> model, HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
+
 		if (logger.isTraceEnabled()) {
 			logger.trace("Rendering view with name '" + this.beanName + "' with model " + model +
 				" and static attributes " + this.staticAttributes);
@@ -426,7 +434,9 @@ public abstract class AbstractView extends WebApplicationObjectSupport implement
 	 * @param model Map of model objects to expose
 	 * @param request current HTTP request
 	 */
-	protected void exposeModelAsRequestAttributes(Map<String, Object> model, HttpServletRequest request) throws Exception {
+	protected void exposeModelAsRequestAttributes(Map<String, Object> model,
+			HttpServletRequest request) throws Exception {
+
 		model.forEach((modelName, modelValue) -> {
 			if (modelValue != null) {
 				request.setAttribute(modelName, modelValue);

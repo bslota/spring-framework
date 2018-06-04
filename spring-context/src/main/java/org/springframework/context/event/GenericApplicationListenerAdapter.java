@@ -37,6 +37,7 @@ public class GenericApplicationListenerAdapter implements GenericApplicationList
 
 	private final ApplicationListener<ApplicationEvent> delegate;
 
+	@Nullable
 	private final ResolvableType declaredEventType;
 
 
@@ -96,7 +97,6 @@ public class GenericApplicationListenerAdapter implements GenericApplicationList
 		ResolvableType declaredEventType = resolveDeclaredEventType(listener.getClass());
 		if (declaredEventType == null || declaredEventType.isAssignableFrom(
 				ResolvableType.forClass(ApplicationEvent.class))) {
-
 			Class<?> targetClass = AopUtils.getTargetClass(listener);
 			if (targetClass != listener.getClass()) {
 				declaredEventType = resolveDeclaredEventType(targetClass);

@@ -23,6 +23,8 @@ import java.security.MessageDigest;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+import org.springframework.lang.Nullable;
+
 /**
  * A speedy alternative to {@link java.io.ByteArrayOutputStream}. Note that
  * this variant does <i>not</i> extend {@code ByteArrayOutputStream}, unlike
@@ -329,6 +331,7 @@ public class FastByteArrayOutputStream extends OutputStream {
 
 		private final Iterator<byte[]> buffersIterator;
 
+		@Nullable
 		private byte[] currentBuffer;
 
 		private int currentBufferLength = 0;
@@ -350,7 +353,7 @@ public class FastByteArrayOutputStream extends OutputStream {
 					this.currentBufferLength = fastByteArrayOutputStream.index;
 				}
 				else {
-					this.currentBufferLength = this.currentBuffer.length;
+					this.currentBufferLength = (this.currentBuffer != null ? this.currentBuffer.length : 0);
 				}
 			}
 		}
@@ -369,12 +372,7 @@ public class FastByteArrayOutputStream extends OutputStream {
 				else {
 					if (this.buffersIterator.hasNext()) {
 						this.currentBuffer = this.buffersIterator.next();
-						if (this.currentBuffer == this.fastByteArrayOutputStream.buffers.getLast()) {
-							this.currentBufferLength = this.fastByteArrayOutputStream.index;
-						}
-						else {
-							this.currentBufferLength = this.currentBuffer.length;
-						}
+						updateCurrentBufferLength();
 						this.nextIndexInCurrentBuffer = 0;
 					}
 					else {
@@ -398,12 +396,6 @@ public class FastByteArrayOutputStream extends OutputStream {
 			else if (len == 0) {
 				return 0;
 			}
-			else if (len < 0) {
-				throw new IllegalArgumentException("len must be 0 or greater: " + len);
-			}
-			else if (off < 0) {
-				throw new IllegalArgumentException("off must be 0 or greater: " + off);
-			}
 			else {
 				if (this.currentBuffer == null) {
 					// This stream doesn't have any data in it...
@@ -421,12 +413,7 @@ public class FastByteArrayOutputStream extends OutputStream {
 					else {
 						if (this.buffersIterator.hasNext()) {
 							this.currentBuffer = this.buffersIterator.next();
-							if (this.currentBuffer == this.fastByteArrayOutputStream.buffers.getLast()) {
-								this.currentBufferLength = this.fastByteArrayOutputStream.index;
-							}
-							else {
-								this.currentBufferLength = this.currentBuffer.length;
-							}
+							updateCurrentBufferLength();
 							this.nextIndexInCurrentBuffer = 0;
 						}
 						else {
@@ -464,12 +451,7 @@ public class FastByteArrayOutputStream extends OutputStream {
 				else {
 					if (this.buffersIterator.hasNext()) {
 						this.currentBuffer = this.buffersIterator.next();
-						if (this.currentBuffer == this.fastByteArrayOutputStream.buffers.getLast()) {
-							this.currentBufferLength = this.fastByteArrayOutputStream.index;
-						}
-						else {
-							this.currentBufferLength = this.currentBuffer.length;
-						}
+						updateCurrentBufferLength();
 						this.nextIndexInCurrentBuffer = 0;
 					}
 					else {
@@ -489,6 +471,7 @@ public class FastByteArrayOutputStream extends OutputStream {
 		 * Update the message digest with the remaining bytes in this stream.
 		 * @param messageDigest The message digest to update
 		 */
+		@Override
 		public void updateMessageDigest(MessageDigest messageDigest) {
 			updateMessageDigest(messageDigest, available());
 		}
@@ -499,6 +482,7 @@ public class FastByteArrayOutputStream extends OutputStream {
 		 * @param messageDigest The message digest to update
 		 * @param len how many bytes to read from this stream and use to update the message digest
 		 */
+		@Override
 		public void updateMessageDigest(MessageDigest messageDigest, int len) {
 			if (this.currentBuffer == null) {
 				// This stream doesn't have any data in it...
@@ -520,12 +504,7 @@ public class FastByteArrayOutputStream extends OutputStream {
 				else {
 					if (this.buffersIterator.hasNext()) {
 						this.currentBuffer = this.buffersIterator.next();
-						if (this.currentBuffer == this.fastByteArrayOutputStream.buffers.getLast()) {
-							this.currentBufferLength = this.fastByteArrayOutputStream.index;
-						}
-						else {
-							this.currentBufferLength = this.currentBuffer.length;
-						}
+						updateCurrentBufferLength();
 						this.nextIndexInCurrentBuffer = 0;
 					}
 					else {
@@ -533,6 +512,15 @@ public class FastByteArrayOutputStream extends OutputStream {
 					}
 					updateMessageDigest(messageDigest, len);
 				}
+			}
+		}
+
+		private void updateCurrentBufferLength() {
+			if (this.currentBuffer == this.fastByteArrayOutputStream.buffers.getLast()) {
+				this.currentBufferLength = this.fastByteArrayOutputStream.index;
+			}
+			else {
+				this.currentBufferLength = (this.currentBuffer != null ? this.currentBuffer.length : 0);
 			}
 		}
 	}
